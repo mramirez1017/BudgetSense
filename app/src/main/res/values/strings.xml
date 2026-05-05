@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">BudgetSense</string>
+    <!-- Web client ID (OAuth 2.0) from Firebase → Authentication → Google → Web SDK configuration -->
+    <string name="default_web_client_id">635668557215-pknli7ued8dm21k4bn0uoa392smhhneg.apps.googleusercontent.com</string>
+</resources>

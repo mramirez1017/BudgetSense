@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "635668557215",
+    "project_id": "budgetsense-930c0",
+    "storage_bucket": "budgetsense-930c0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635668557215:android:1da621c9351312a259a1aa",
+        "android_client_info": {
+          "package_name": "com.amdevstudio.budgetsense"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYN29tUkJdU-kjTM3BEWs49P0wgdi7JHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
