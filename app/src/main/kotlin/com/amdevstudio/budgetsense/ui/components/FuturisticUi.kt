@@ -55,21 +55,21 @@ fun BudgetSenseAmbientBackground(modifier: Modifier = Modifier) {
         val h = size.height
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(warm.copy(alpha = 0.2f), Color.Transparent),
+                colors = listOf(warm.copy(alpha = 0.09f), Color.Transparent),
                 center = Offset(w * 0.9f, -h * 0.08f),
                 radius = w.coerceAtLeast(h) * 0.72f,
             ),
         )
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF5C3DFF).copy(alpha = 0.12f), Color.Transparent),
+                colors = listOf(Color(0xFF5C3DFF).copy(alpha = 0.05f), Color.Transparent),
                 center = Offset(-w * 0.02f, h * 1.02f),
                 radius = w.coerceAtLeast(h) * 0.65f,
             ),
         )
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(Color.Transparent, base.copy(alpha = 0.94f)),
+                colors = listOf(Color.Transparent, base.copy(alpha = 0.85f)),
                 startY = h * 0.42f,
                 endY = h,
             ),
@@ -82,8 +82,8 @@ fun BudgetSenseAmbientBackground(modifier: Modifier = Modifier) {
 fun NeoPanel(
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.large,
-    borderAlpha: Float = 0.38f,
-    fillAlpha: Float = 0.78f,
+    borderAlpha: Float = 0.22f,
+    fillAlpha: Float = 1f,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(

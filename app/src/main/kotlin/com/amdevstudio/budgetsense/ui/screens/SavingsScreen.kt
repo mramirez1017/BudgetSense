@@ -53,6 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.amdevstudio.budgetsense.data.local.entity.SavingsContributionEntity
@@ -151,63 +152,37 @@ fun SavingsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Row(
+                            Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { expandedGoalId = if (open) null else goal.id },
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF26A69A).copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    modifier = Modifier.weight(1f),
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(44.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(0xFF26A69A).copy(alpha = 0.2f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Savings,
-                                            contentDescription = null,
-                                            tint = Color(0xFF26A69A),
-                                            modifier = Modifier.size(24.dp),
-                                        )
-                                    }
-                                    Column {
-                                        Text(goal.name, style = MaterialTheme.typography.titleMedium)
-                                        Text(
-                                            "${sorted.size} deposit${if (sorted.size == 1) "" else "s"}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Column(horizontalAlignment = Alignment.End) {
-                                        Text(
-                                            MoneyFormat.format(profile.currencyCode, goal.savedCents, profile.hideBalance),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = if (overTarget) Color(0xFF43A047) else MaterialTheme.colorScheme.onSurface,
-                                        )
-                                        Text(
-                                            "of ${MoneyFormat.format(profile.currencyCode, goal.targetCents, profile.hideBalance)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    Icon(
-                                        if (open) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = if (open) "Collapse" else "Expand",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.Savings,
+                                    contentDescription = null,
+                                    tint = Color(0xFF26A69A),
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .padding(end = 4.dp),
+                            ) {
+                                Text(
+                                    text = goal.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    "${sorted.size} deposit${if (sorted.size == 1) "" else "s"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                             IconButton(onClick = { editingGoal = goal }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit goal")
@@ -215,6 +190,31 @@ fun SavingsScreen(
                             IconButton(onClick = { goalPendingDelete = goal }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete goal")
                             }
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expandedGoalId = if (open) null else goal.id },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column {
+                                Text(
+                                    MoneyFormat.format(profile.currencyCode, goal.savedCents, profile.hideBalance),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = if (overTarget) Color(0xFF43A047) else MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    "of ${MoneyFormat.format(profile.currencyCode, goal.targetCents, profile.hideBalance)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(
+                                if (open) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (open) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
 
                         LinearProgressIndicator(

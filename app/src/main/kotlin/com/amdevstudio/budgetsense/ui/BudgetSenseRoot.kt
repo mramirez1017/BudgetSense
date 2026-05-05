@@ -8,10 +8,12 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -123,9 +125,16 @@ fun BudgetSenseRoot(
     }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         contentColor = MaterialTheme.colorScheme.onBackground,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.navigationBarsPadding(),
+            )
+        },
     ) { padding ->
         // Collect above NavHost so flows stay active on transaction_edit / bills / etc.
         // (MainShell is not composed when those screens are shown; in-shell collection missed Room updates.)
@@ -215,7 +224,7 @@ fun BudgetSenseRoot(
                         }
                     }
                 }
-                Box(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize().statusBarsPadding()) {
                     BudgetSenseAmbientBackground(Modifier.fillMaxSize())
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -462,7 +471,7 @@ private fun MainShell(
             Surface(
                 modifier = Modifier
                     .navigationBarsPadding()
-                    .padding(horizontal = 18.dp, vertical = 10.dp)
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(36.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
@@ -514,6 +523,7 @@ private fun MainShell(
         Box(
             Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(innerPadding),
         ) {
             BudgetSenseAmbientBackground(Modifier.fillMaxSize())

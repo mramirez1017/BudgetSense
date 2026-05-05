@@ -2,8 +2,32 @@ package com.amdevstudio.budgetsense.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+
+private val BudgetSenseLightColorScheme = lightColorScheme(
+    primary = TealPrimary,
+    onPrimary = OnTealLight,
+    primaryContainer = Color(0xFFCCFBF1),
+    onPrimaryContainer = Color(0xFF134E4A),
+    secondary = OrangeSecondary,
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFEDD5),
+    onSecondaryContainer = Color(0xFF7C2D12),
+    tertiary = TealPrimaryDark,
+    onTertiary = OnTealLight,
+    background = LightBackground,
+    onBackground = LightOnBackground,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    outline = LightOutline,
+    outlineVariant = Color(0xFFE2E8F0),
+    error = Danger,
+    onError = Color.White,
+)
 
 private val BudgetSenseDarkColorScheme = darkColorScheme(
     primary = AccentOrange,
@@ -30,10 +54,11 @@ private val BudgetSenseDarkColorScheme = darkColorScheme(
 
 @Composable
 fun BudgetSenseTheme(
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
-        colorScheme = BudgetSenseDarkColorScheme,
+        colorScheme = if (darkTheme) BudgetSenseDarkColorScheme else BudgetSenseLightColorScheme,
         typography = BudgetSenseTypography,
         shapes = BudgetSenseShapes,
         content = content,
