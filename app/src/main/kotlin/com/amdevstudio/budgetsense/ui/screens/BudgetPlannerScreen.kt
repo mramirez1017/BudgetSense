@@ -2,6 +2,7 @@ package com.amdevstudio.budgetsense.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -32,7 +34,9 @@ import com.amdevstudio.budgetsense.data.local.entity.BudgetCategoryCapEntity
 import com.amdevstudio.budgetsense.data.local.entity.BudgetPlanEntity
 import com.amdevstudio.budgetsense.data.repository.BudgetRepository
 import com.amdevstudio.budgetsense.domain.Categories
+import com.amdevstudio.budgetsense.domain.MoneyFormat
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -45,6 +49,7 @@ fun BudgetPlannerScreen(
     plan: BudgetPlanEntity?,
     caps: List<BudgetCategoryCapEntity>,
     repository: BudgetRepository,
+    currencyCode: String,
 ) {
     val scope = rememberCoroutineScope()
     val dismissKeyboard = rememberKeyboardDismiss()
@@ -92,15 +97,30 @@ fun BudgetPlannerScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        OverlineCaps("Budget", color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(4.dp))
-        Text("Plan for $monthKey", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Enter how much you intend to spend overall. Optional daily/weekly caps remind you to pace yourself. Category caps feed the Insights screen.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(Modifier.weight(1f)) {
+                OverlineCaps("Budget", color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(4.dp))
+                Text("Plan for $monthKey", style = MaterialTheme.typography.headlineSmall)
+            }
+            ScreenHelpIconButton(title = "Budget planner") {
+                Text(
+                    "Enter how much you intend to spend overall this month (monthly budget total). Daily and weekly limits are optional reminders so you pace spending across the month.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Per-category limits are optional. Example: cap “Food” — Money and Insights use those caps to show progress and tips.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
 
         OutlinedTextField(
             value = total,
@@ -147,11 +167,6 @@ fun BudgetPlannerScreen(
 
         Spacer(Modifier.height(16.dp))
         Text("Per-category limits", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "Optional. Example: cap “Dining” so Insights can flag when you blow past it.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
 
         ExposedDropdownMenuBox(expanded = catMenu, onExpandedChange = { catMenu = !catMenu }) {
             OutlinedTextField(
@@ -201,7 +216,10 @@ fun BudgetPlannerScreen(
         if (caps.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             caps.forEach { cap ->
-                Text("${cap.category}: ${cap.capCents / 100.0}")
+                Text(
+                    "${cap.category}: ${MoneyFormat.format(currencyCode, cap.capCents, hide = false)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }

@@ -66,6 +66,9 @@ import com.amdevstudio.budgetsense.ui.screens.InsightsScreen
 import com.amdevstudio.budgetsense.ui.screens.LoginScreen
 import com.amdevstudio.budgetsense.ui.screens.ProfileSetupScreen
 import com.amdevstudio.budgetsense.ui.screens.SavingsScreen
+import com.amdevstudio.budgetsense.ui.screens.AboutScreen
+import com.amdevstudio.budgetsense.ui.screens.CurrencyConverterScreen
+import com.amdevstudio.budgetsense.ui.screens.FaqScreen
 import com.amdevstudio.budgetsense.ui.screens.SettingsScreen
 import com.amdevstudio.budgetsense.ui.screens.TransactionEditScreen
 import com.amdevstudio.budgetsense.ui.screens.TransactionsScreen
@@ -327,6 +330,9 @@ fun BudgetSenseRoot(
                     budgetCaps = budgetCaps,
                     savingsSnapshot = savingsSnapshot,
                     hasSavingsGoals = savingsGoals.isNotEmpty(),
+                    onOpenAbout = { navController.navigate("about") },
+                    onOpenFaq = { navController.navigate("faq") },
+                    onOpenCurrencyConverter = { navController.navigate("currency_converter") },
                 )
             }
 
@@ -415,6 +421,38 @@ fun BudgetSenseRoot(
                     }
                 }
             }
+
+            composable("about") {
+                AboutScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenFaq = { navController.navigate("faq") },
+                )
+            }
+
+            composable("faq") {
+                FaqScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable("currency_converter") {
+                val user = authUser
+                if (user == null) {
+                    LaunchedEffect(Unit) {
+                        navController.navigateToLoginReplacingBackStack()
+                    }
+                } else {
+                    val code = profile?.currencyCode
+                    if (code == null) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        }
+                    } else {
+                        CurrencyConverterScreen(
+                            profileCurrency = code,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -440,6 +478,9 @@ private fun MainShell(
     budgetCaps: List<BudgetCategoryCapEntity>,
     savingsSnapshot: SavingsMonthSnapshot,
     hasSavingsGoals: Boolean,
+    onOpenAbout: () -> Unit,
+    onOpenFaq: () -> Unit,
+    onOpenCurrencyConverter: () -> Unit,
 ) {
     val user = authUser
     if (user == null) {
@@ -563,6 +604,7 @@ private fun MainShell(
                     plan = budgetPlan,
                     caps = budgetCaps,
                     repository = budgetRepository,
+                    currencyCode = p.currencyCode,
                 )
 
                 "settings" -> SettingsScreen(
@@ -570,6 +612,9 @@ private fun MainShell(
                     profileRepository = profileRepository,
                     authRepository = authRepository,
                     transactionRepository = transactionRepository,
+                    onOpenAbout = onOpenAbout,
+                    onOpenFaq = onOpenFaq,
+                    onOpenCurrencyConverter = onOpenCurrencyConverter,
                     onSignedOut = {
                         navController.navigateToLoginReplacingBackStack()
                     },

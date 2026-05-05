@@ -29,6 +29,7 @@ import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.Insights
 import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +91,15 @@ fun InsightsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    ScreenHelpIconButton(title = "Insights") {
+                        Text(
+                            "Insights compares this week and last week’s spending and looks at your category limits from the Budget tab. Add more transactions so the tips reflect your real habits.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
@@ -105,12 +115,6 @@ fun InsightsScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                "We compare this week, last week, and your category caps from the Budget tab. Add more transactions for sharper tips.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
             lines.forEach { line ->
                 NeoPanel(borderAlpha = 0.25f, fillAlpha = 0.68f) {
                     Text(line, style = MaterialTheme.typography.bodyLarge)

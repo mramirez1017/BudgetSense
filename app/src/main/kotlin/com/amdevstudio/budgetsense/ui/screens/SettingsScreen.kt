@@ -2,17 +2,26 @@ package com.amdevstudio.budgetsense.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -20,8 +29,11 @@ import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.data.repository.AuthRepository
 import com.amdevstudio.budgetsense.data.repository.ProfileRepository
 import com.amdevstudio.budgetsense.data.repository.TransactionRepository
+import com.amdevstudio.budgetsense.domain.SupportedCurrencies
+import com.amdevstudio.budgetsense.domain.currencyChipLabel
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,23 +44,97 @@ fun SettingsScreen(
     profileRepository: ProfileRepository,
     authRepository: AuthRepository,
     transactionRepository: TransactionRepository,
+    onOpenAbout: () -> Unit,
+    onOpenFaq: () -> Unit,
+    onOpenCurrencyConverter: () -> Unit,
     onSignedOut: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     Column(
-        modifier = Modifier.padding(20.dp),
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        OverlineCaps("Account", color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.height(4.dp))
-        Text("Preferences & sign-in", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Hide amounts on Home and Money if you’re showing the screen to someone else.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(Modifier.weight(1f)) {
+                OverlineCaps("Account", color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(4.dp))
+                Text("Preferences & sign-in", style = MaterialTheme.typography.headlineSmall)
+            }
+            ScreenHelpIconButton(title = "Account") {
+                Text(
+                    "Hide balances hides money amounts on Home and Money — useful when someone else can see your screen.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Currency sets how amounts are labeled everywhere. It does not convert past entries.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Sign out clears your session and removes BudgetSense data from this device. Sign in again to restore what’s stored for your account.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        NeoPanel(borderAlpha = 0.28f) {
+            Text("Help & info", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+                Text("About BudgetSense")
+            }
+            TextButton(onClick = onOpenFaq, modifier = Modifier.fillMaxWidth()) {
+                Text("FAQ")
+            }
+        }
+
+        NeoPanel(borderAlpha = 0.28f) {
+            Text("Currency", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(12.dp))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                items(SupportedCurrencies, key = { it }) { code ->
+                    val chipColors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FilterChip(
+                        selected = profile.currencyCode == code,
+                        onClick = {
+                            if (profile.currencyCode == code) return@FilterChip
+                            val updated = profile.copy(currencyCode = code)
+                            scope.launch {
+                                profileRepository.save(updated)
+                                withContext(Dispatchers.IO) {
+                                    profileRepository.syncProfileToCloud(updated)
+                                }
+                            }
+                        },
+                        label = { Text(currencyChipLabel(code)) },
+                        colors = chipColors,
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = onOpenCurrencyConverter, modifier = Modifier.fillMaxWidth()) {
+                Text("Open live currency converter")
+            }
+        }
 
         NeoPanel(borderAlpha = 0.28f) {
             Text("Privacy on this device", style = MaterialTheme.typography.titleMedium)
@@ -72,12 +158,6 @@ fun SettingsScreen(
                 },
             )
         }
-
-        Text(
-            "Sign out removes your session on this phone and deletes BudgetSense data stored locally on the device. Sign in again anytime.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
 
         Button(
             onClick = {

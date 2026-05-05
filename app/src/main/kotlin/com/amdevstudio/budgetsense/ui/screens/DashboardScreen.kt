@@ -22,22 +22,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +50,7 @@ import com.amdevstudio.budgetsense.domain.SavingsMonthSnapshot
 import com.amdevstudio.budgetsense.ui.components.DataFigure
 import com.amdevstudio.budgetsense.ui.components.MonthExpensePieChart
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 
 @Composable
@@ -112,8 +107,6 @@ fun DashboardScreen(
     val dockShape = MaterialTheme.shapes.extraLarge
     val savingsDockShape = MaterialTheme.shapes.extraLarge
     val accentStroke = MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
-    var showAboutDialog by remember { mutableStateOf(false) }
-
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
@@ -132,17 +125,21 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+            }
+            ScreenHelpIconButton(title = "Home") {
                 Text(
-                    "This month’s snapshot — scroll sideways on tiles below.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    "This month’s snapshot — scroll sideways on the tiles below.",
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-            IconButton(onClick = { showAboutDialog = true }) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = "What BudgetSense is for",
-                    tint = MaterialTheme.colorScheme.primary,
+                Text("• Money — add income and expenses as they happen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("• Budget — choose how much you want to spend this month.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("• Bills & savings — optional shortcuts from Home.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("• Insights — short tips built from your own numbers.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Data is kept on your phone first (works offline). When you’re online, it syncs to your account so you can continue on another device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }
@@ -537,31 +534,6 @@ fun DashboardScreen(
         }
     }
 
-    if (showAboutDialog) {
-        AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
-            title = { Text("What BudgetSense is for") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val hint = MaterialTheme.colorScheme.onSurfaceVariant
-                    val body = MaterialTheme.typography.bodySmall
-                    Text("• Money — add income and expenses as they happen.", style = body, color = hint)
-                    Text("• Budget — choose how much you want to spend this month.", style = body, color = hint)
-                    Text("• Bills & savings — optional lists from the shortcuts on Home.", style = body, color = hint)
-                    Text("• Insights — plain-language tips from your real numbers.", style = body, color = hint)
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Transactions save on your phone first (works offline). When you’re online, they sync to the cloud so you can recover them on another device.",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) { Text("Got it") }
-            },
-        )
-    }
 }
 
 @Composable

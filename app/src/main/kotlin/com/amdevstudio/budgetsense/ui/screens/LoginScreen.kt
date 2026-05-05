@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.repository.AuthRepository
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.findActivity
 import com.amdevstudio.budgetsense.ui.util.userFacingMessage
 import kotlinx.coroutines.launch
@@ -48,6 +49,24 @@ fun LoginScreen(
 
     Box(Modifier.fillMaxSize()) {
         BudgetSenseAmbientBackground(Modifier.fillMaxSize())
+        ScreenHelpIconButton(
+            title = "BudgetSense sign-in",
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(12.dp),
+        ) {
+            Text(
+                "Track what you earn and spend, set a monthly budget, and get simple tips from your own data.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "Works on your phone offline. Sign in with Google to keep your profile and activity available when you switch devices.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -59,18 +78,6 @@ fun LoginScreen(
             OverlineCaps("Personal finance", color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(10.dp))
             Text("BudgetSense", style = MaterialTheme.typography.displaySmall)
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "Track what you earn and spend, set a monthly budget, and get simple tips from your own data.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                "Works on your phone offline. Sign in with Google to save your profile to the cloud.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             Spacer(Modifier.height(36.dp))
             Button(
                 shape = MaterialTheme.shapes.large,
