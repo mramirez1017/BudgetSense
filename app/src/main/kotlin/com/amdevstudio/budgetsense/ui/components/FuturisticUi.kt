@@ -16,8 +16,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -103,22 +103,11 @@ fun DataFigure(
     color: Color = MaterialTheme.colorScheme.onSurface,
     compact: Boolean = false,
 ) {
-    Text(
+    AdaptiveMonospaceValue(
         text = text,
         modifier = modifier,
-        style = if (compact) {
-            MaterialTheme.typography.titleMedium.copy(
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.2.sp,
-            )
-        } else {
-            MaterialTheme.typography.titleLarge.copy(
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.15.sp,
-            )
-        },
         color = color,
+        compact = compact,
+        textAlign = TextAlign.End,
     )
 }

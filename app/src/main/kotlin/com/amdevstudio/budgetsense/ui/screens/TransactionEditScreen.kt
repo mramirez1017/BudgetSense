@@ -41,6 +41,7 @@ import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.data.repository.TransactionRepository
 import com.amdevstudio.budgetsense.domain.Categories
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseDateField
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -97,6 +98,20 @@ fun TransactionEditScreen(
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    ScreenHelpIconButton(title = "Add or edit a transaction") {
+                        Text(
+                            "Choose income or expense, pick a category, and enter the amount (use decimals if your currency uses them). Notes are optional.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "Set the date when the money actually moved. Save stores the entry; on an existing item you can Delete to remove it permanently.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
             )

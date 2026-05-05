@@ -51,11 +51,9 @@ class AuthRepository(
     private fun googleSignInMessage(statusCode: Int, detail: String?): String {
         val suffix = detail?.takeIf { it.isNotBlank() }?.let { " ($it)" }.orEmpty()
         return when (statusCode) {
-            ConnectionResult.DEVELOPER_ERROR -> {
-                "Sign-in error 10 (DEVELOPER_ERROR). In Firebase Console → Project settings → Your Android app " +
-                    "(package com.amdevstudio.budgetsense), add the SHA-1 (and SHA-256) for the keystore you use to " +
-                    "run this build (Android Studio: Gradle → app → Tasks → android → signingReport). Save, wait a minute, then try again."
-            }
+            ConnectionResult.DEVELOPER_ERROR ->
+                "Sign-in isn’t configured for this build (DEVELOPER_ERROR). The developer must register your app package " +
+                    "(com.amdevstudio.budgetsense) and signing certificate fingerprints with Google Sign-In."
             GoogleSignInStatusCodes.SIGN_IN_CANCELLED ->
                 "Sign-in was cancelled."
             ConnectionResult.NETWORK_ERROR ->

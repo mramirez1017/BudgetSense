@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.domain.MoneyFormat
@@ -43,6 +45,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private const val CategoryIconSlot = 44
+private const val IconToTextGap = 12
 
 @Composable
 fun SpendingCategoryCard(
@@ -76,6 +81,11 @@ fun SpendingCategoryCard(
         DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
     }
     val zone = ZoneId.systemDefault()
+    val countLabel = remember(transactions.size) {
+        val n = transactions.size
+        if (n == 1) "1 transaction" else "$n transactions"
+    }
+    val textStartPadding = (CategoryIconSlot + IconToTextGap).dp
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -84,64 +94,95 @@ fun SpendingCategoryCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Row(
+            Column(
                 Modifier
                     .fillMaxWidth()
                     .clickable { onToggle() },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Row(
+                    Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(visual.accent.copy(alpha = 0.22f)),
-                        contentAlignment = Alignment.Center,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(IconToTextGap.dp),
+                        modifier = Modifier.weight(1f),
                     ) {
-                        Icon(
-                            visual.icon,
-                            contentDescription = null,
-                            tint = visual.accent,
-                            modifier = Modifier.size(24.dp),
+                        Box(
+                            modifier = Modifier
+                                .size(CategoryIconSlot.dp)
+                                .clip(CircleShape)
+                                .background(visual.accent.copy(alpha = 0.22f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                visual.icon,
+                                contentDescription = null,
+                                tint = visual.accent,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                        AdaptivePlainText(
+                            text = category,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Start,
+                            maxLines = 1,
+                            minScale = 0.78f,
                         )
                     }
-                    Column {
-                        Text(category, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "${transactions.size} transaction${if (transactions.size == 1) "" else "s"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Icon(
+                        if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Column(horizontalAlignment = Alignment.End) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    AdaptivePlainText(
+                        text = countLabel,
+                        modifier = Modifier
+                            .padding(start = textStartPadding)
+                            .weight(1f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Start,
+                        maxLines = 2,
+                        minScale = 0.72f,
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier
+                            .weight(0.44f)
+                            .padding(start = 8.dp),
+                    ) {
                         if (hasCap) {
-                            Row(
-                                verticalAlignment = Alignment.Bottom,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Text(
-                                    MoneyFormat.format(currencyCode, spent, hideBalance),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = if (over) Color(0xFFE53935) else MaterialTheme.colorScheme.onSurface,
-                                )
-                                Text(
-                                    "of ${MoneyFormat.format(currencyCode, limit, hideBalance)}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                            AdaptiveMonospaceValue(
+                                text = MoneyFormat.format(currencyCode, spent, hideBalance),
+                                color = if (over) Color(0xFFE53935) else MaterialTheme.colorScheme.onSurface,
+                                compact = true,
+                                textAlign = TextAlign.End,
+                            )
+                            AdaptiveMonospaceValue(
+                                text = "of ${MoneyFormat.format(currencyCode, limit, hideBalance)}",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                compact = true,
+                                textAlign = TextAlign.End,
+                                minScale = 0.5f,
+                            )
                         } else {
-                            Text(
-                                MoneyFormat.format(currencyCode, spent, hideBalance),
-                                style = MaterialTheme.typography.titleSmall,
+                            AdaptiveMonospaceValue(
+                                text = MoneyFormat.format(currencyCode, spent, hideBalance),
                                 color = MaterialTheme.colorScheme.onSurface,
+                                compact = true,
+                                textAlign = TextAlign.End,
                             )
                             Text(
                                 "No category limit",
@@ -150,11 +191,6 @@ fun SpendingCategoryCard(
                             )
                         }
                     }
-                    Icon(
-                        if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
             Spacer(Modifier.height(10.dp))
@@ -185,22 +221,36 @@ fun SpendingCategoryCard(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Column(Modifier.weight(1f)) {
+                            Column(
+                                Modifier
+                                    .weight(1f)
+                                    .padding(end = 8.dp),
+                            ) {
                                 Text(
                                     tx.note.ifBlank { tx.category },
                                     style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
                                     Instant.ofEpochMilli(tx.occurredAtMillis).atZone(zone).format(dateFmt),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    "−${MoneyFormat.format(currencyCode, tx.amountCents, hideBalance)}",
-                                    style = MaterialTheme.typography.titleSmall,
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.End,
+                                modifier = Modifier.weight(0.46f),
+                            ) {
+                                AdaptiveMonospaceValue(
+                                    text = "−${MoneyFormat.format(currencyCode, tx.amountCents, hideBalance)}",
                                     color = Color(0xFFE53935),
+                                    compact = true,
+                                    textAlign = TextAlign.End,
+                                    modifier = Modifier.weight(1f),
                                 )
                                 IconButton(onClick = { onDeleteTransaction(tx) }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete")

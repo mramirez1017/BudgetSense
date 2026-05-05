@@ -62,6 +62,7 @@ import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.data.repository.SavingsRepository
 import com.amdevstudio.budgetsense.domain.MoneyFormat
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseOptionalDateField
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -102,19 +103,19 @@ fun SavingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text("Savings goals", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            "Collapse a goal to see recent deposits; expand for full history, edit, or delete.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
+                title = { Text("Savings goals", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    ScreenHelpIconButton(title = "Savings") {
+                        Text(
+                            "Collapse a goal to see recent deposits. Expand it for full history, edit details, delete the goal, or add money toward the target.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
             )

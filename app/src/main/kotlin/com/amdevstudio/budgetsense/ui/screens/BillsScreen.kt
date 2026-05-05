@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.local.entity.BillReminderEntity
 import com.amdevstudio.budgetsense.data.repository.BillRepository
 import com.amdevstudio.budgetsense.domain.Time
+import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseDateField
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
@@ -68,6 +69,15 @@ fun BillsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    ScreenHelpIconButton(title = "Bill reminders") {
+                        Text(
+                            "Add a bill with a name, due date, and whether it repeats each month. Choose how many days before the due date you want a heads-up. Check “Paid this month” after you pay so you can track it against the current month.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
             )

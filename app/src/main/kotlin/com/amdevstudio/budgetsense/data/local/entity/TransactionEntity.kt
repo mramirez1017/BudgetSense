@@ -7,7 +7,7 @@ import com.amdevstudio.budgetsense.data.local.TransactionType
 @Entity(tableName = "transactions")
 data class TransactionEntity(
     @PrimaryKey val id: String,
-    /** Firebase Auth uid — rows are scoped so one account cannot delete another’s local data. */
+    /** Signed-in account id — rows are scoped so one account cannot delete another’s local data. */
     val userId: String,
     val type: TransactionType,
     val category: String,
