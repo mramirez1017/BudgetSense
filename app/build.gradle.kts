@@ -6,6 +6,13 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+// Optional: copy keystore.properties.example → keystore.properties (gitignored) so `./gradlew bundleRelease`
+// signs from Gradle. Otherwise use Android Studio: Build → Generate Signed App Bundle / APK.
+private val keystorePropsFile = rootProject.file("keystore.properties")
+
 android {
     namespace = "com.amdevstudio.budgetsense"
     compileSdk = 35
@@ -14,14 +21,29 @@ android {
         applicationId = "com.amdevstudio.budgetsense"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.0.0"
+        versionCode = 4
+        versionName = "2.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            val keystoreProps = Properties()
+            keystorePropsFile.inputStream().use { stream -> keystoreProps.load(stream) }
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -36,9 +58,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
         buildConfig = true
@@ -47,6 +66,12 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
