@@ -12,7 +12,28 @@
           "package_name": "com.amdevstudio.budgetsense"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "635668557215-h0uvfpca8vu68m69c4mhsbdvfsiek818.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.amdevstudio.budgetsense",
+            "certificate_hash": "c3242109c9b5642e13cb750d51059845961e4755"
+          }
+        },
+        {
+          "client_id": "635668557215-n2uk2d9c6ft00ujab2fq1it04k1h5cni.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.amdevstudio.budgetsense",
+            "certificate_hash": "ae289daa819ed8d10374c83cf6f94e8492da3b30"
+          }
+        },
+        {
+          "client_id": "635668557215-pknli7ued8dm21k4bn0uoa392smhhneg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAYN29tUkJdU-kjTM3BEWs49P0wgdi7JHE"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "635668557215-pknli7ued8dm21k4bn0uoa392smhhneg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

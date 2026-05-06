@@ -13,4 +13,6 @@
 *.ap_
 *.dex
 *.keystore
+*.jks
 !debug.keystore
+keystore.properties
