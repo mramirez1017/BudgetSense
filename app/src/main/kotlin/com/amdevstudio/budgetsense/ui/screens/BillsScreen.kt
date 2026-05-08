@@ -1,19 +1,22 @@
 package com.amdevstudio.budgetsense.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -27,18 +30,25 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.local.entity.BillReminderEntity
 import com.amdevstudio.budgetsense.data.repository.BillRepository
 import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseDateField
+import com.amdevstudio.budgetsense.ui.components.GlassCard
+import com.amdevstudio.budgetsense.ui.util.appListContentPadding
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import com.amdevstudio.budgetsense.notifications.BillReminderScheduler
 import kotlinx.coroutines.launch
@@ -47,6 +57,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +66,7 @@ fun BillsScreen(
     bills: List<BillReminderEntity>,
     userId: String,
     onBack: () -> Unit,
+    showTopBar: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     val dismissKeyboard = rememberKeyboardDismiss()
@@ -64,85 +76,164 @@ fun BillsScreen(
     var dueDate by remember { mutableStateOf(LocalDate.now()) }
     var repeat by remember { mutableStateOf(true) }
     var notify by remember { mutableStateOf("1") }
+    var billPendingDelete by remember { mutableStateOf<BillReminderEntity?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Bill reminders") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    ScreenHelpIconButton(title = "Bill reminders") {
-                        Text(
-                            "Add a bill with a name, due date, and whether it repeats each month. Choose how many days before the due date you want a heads-up.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            "BudgetSense schedules notifications on this phone. On Android 13+, allow notification permission or reminders won’t show.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            "Mark “Paid this month” after you pay so you can track it.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add bill")
-            }
-        },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            items(bills, key = { it.id }) { bill ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    val density = LocalDensity.current
+    var fabDragX by remember { mutableFloatStateOf(0f) }
+    var fabDragY by remember { mutableFloatStateOf(0f) }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val maxW = constraints.maxWidth.toFloat()
+        val maxH = constraints.maxHeight.toFloat()
+        val fabPx = with(density) { 56.dp.roundToPx() }.toFloat()
+        val padH = with(density) { 16.dp.toPx() }
+        val padV = with(density) { 24.dp.toPx() }
+        val maxDragLeft = -(maxW - fabPx - padH * 2).coerceAtLeast(0f)
+        val maxDragUp = -(maxH - fabPx - padV * 2).coerceAtLeast(0f)
+
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = if (!showTopBar) {
+                {}
+            } else {
+                {
+                    TopAppBar(
+                        title = { Text("Bill reminders") },
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        actions = {
+                            ScreenHelpIconButton(title = "Bill reminders") {
+                                Text(
+                                    "Add bills with a name, due date, and how many days before you want a reminder.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    "Reminders are scheduled on this phone. On Android 13+, allow notification permission.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Text(
+                                    "Use the trash icon to delete a bill and cancel its reminder.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        },
+                    )
+                }
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showDialog = true },
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(end = 16.dp, bottom = 24.dp)
+                        .offset { IntOffset(fabDragX.roundToInt(), fabDragY.roundToInt()) }
+                        .pointerInput(maxDragLeft, maxDragUp, fabPx) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                fabDragX = (fabDragX + dragAmount.x).coerceIn(maxDragLeft, 0f)
+                                fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, 0f)
+                            }
+                        },
                 ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(bill.title, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Due ${formatMillis(bill.dueAtMillis)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = bill.lastPaidPeriod == Time.monthKey(),
-                                onCheckedChange = { checked ->
-                                    scope.launch {
-                                        repository.upsert(
-                                            userId,
-                                            bill.copy(
-                                                lastPaidPeriod = if (checked) Time.monthKey() else null,
-                                            ),
-                                        )
-                                        BillReminderScheduler.schedule(
-                                            context = context,
-                                            billId = bill.id,
-                                            title = bill.title,
-                                            dueAtMillis = bill.dueAtMillis,
-                                            notifyDaysBefore = bill.notifyDaysBefore,
+                    Icon(Icons.Default.Add, contentDescription = "Add bill — drag to move")
+                }
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (!showTopBar) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Bill reminders", style = MaterialTheme.typography.headlineSmall)
+                        ScreenHelpIconButton(title = "Bill reminders") {
+                            Text(
+                                "Add bills with a name, due date, and how many days before you want a reminder.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                "Reminders are scheduled on this phone. On Android 13+, allow notification permission.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                "Use the trash icon to delete a bill and cancel its reminder.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    contentPadding = appListContentPadding(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    items(bills, key = { it.id }) { bill ->
+                        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 26.dp) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        bill.title,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    IconButton(onClick = { billPendingDelete = bill }) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "Delete bill",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
-                                },
-                            )
-                            Text("Paid this month")
+                                }
+                                Text(
+                                    "Due ${formatMillis(bill.dueAtMillis)} · remind ${bill.notifyDaysBefore} day(s) before",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = bill.lastPaidPeriod == Time.monthKey(),
+                                        onCheckedChange = { checked ->
+                                            scope.launch {
+                                                repository.upsert(
+                                                    userId,
+                                                    bill.copy(
+                                                        lastPaidPeriod = if (checked) Time.monthKey() else null,
+                                                    ),
+                                                )
+                                                BillReminderScheduler.schedule(
+                                                    context = context,
+                                                    billId = bill.id,
+                                                    title = bill.title,
+                                                    dueAtMillis = bill.dueAtMillis,
+                                                    notifyDaysBefore = bill.notifyDaysBefore,
+                                                )
+                                            }
+                                        },
+                                    )
+                                    Text("Paid this month")
+                                }
+                            }
                         }
                     }
                 }
@@ -188,9 +279,16 @@ fun BillsScreen(
                             notifyDaysBefore = notify.toIntOrNull()?.coerceAtLeast(0) ?: 1,
                             lastPaidPeriod = null,
                         )
+                        // Close the dialog immediately so a cloud rule/network failure doesn't trap the user.
+                        showDialog = false
+                        title = ""
+                        dueDate = LocalDate.now()
+                        repeat = true
+                        notify = "1"
                         scope.launch {
-                            try {
+                            runCatching {
                                 repository.upsert(userId, entity)
+                            }.onSuccess {
                                 BillReminderScheduler.schedule(
                                     context = context,
                                     billId = entity.id,
@@ -198,18 +296,44 @@ fun BillsScreen(
                                     dueAtMillis = entity.dueAtMillis,
                                     notifyDaysBefore = entity.notifyDaysBefore,
                                 )
-                            } catch (_: Exception) {
-                                return@launch
                             }
-                            showDialog = false
-                            title = ""
-                            dueDate = LocalDate.now()
                         }
                     },
                 ) { Text("Save") }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+            },
+        )
+    }
+
+    billPendingDelete?.let { bill ->
+        AlertDialog(
+            onDismissRequest = { billPendingDelete = null },
+            title = { Text("Delete bill?") },
+            text = {
+                Text(
+                    "“${bill.title}” will be removed and its reminder will be cancelled on this phone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        billPendingDelete = null
+                        scope.launch {
+                            runCatching {
+                                repository.delete(userId, bill)
+                            }
+                            BillReminderScheduler.cancel(context, bill.id)
+                        }
+                    },
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { billPendingDelete = null }) { Text("Cancel") }
             },
         )
     }

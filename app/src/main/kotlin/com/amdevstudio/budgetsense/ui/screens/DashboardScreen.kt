@@ -1,14 +1,18 @@
 package com.amdevstudio.budgetsense.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,43 +21,51 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.min
 import kotlin.math.roundToInt
 import com.amdevstudio.budgetsense.data.local.TransactionType
 import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
+import com.amdevstudio.budgetsense.data.local.entity.SavingsGoalEntity
 import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.MoneyFormat
-import com.amdevstudio.budgetsense.domain.SavingsMonthSnapshot
 import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseMonthField
 import com.amdevstudio.budgetsense.ui.components.DataFigure
+import com.amdevstudio.budgetsense.ui.components.HeroSummaryCard
 import com.amdevstudio.budgetsense.ui.components.MonthExpensePieChart
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
+import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
+import java.time.ZonedDateTime
 
 @Composable
 fun DashboardScreen(
@@ -64,10 +76,7 @@ fun DashboardScreen(
     monthTransactions: List<TransactionEntity>,
     monthKey: String,
     onMonthKeyChanged: (String) -> Unit,
-    savingsSnapshot: SavingsMonthSnapshot,
-    selectedMonthSavingsCents: Long,
-    previousMonthsSavingsCents: Long,
-    hasSavingsGoals: Boolean,
+    savingsGoals: List<SavingsGoalEntity>,
     onOpenTransactions: () -> Unit,
     onOpenBudget: () -> Unit,
     onOpenBills: () -> Unit,
@@ -77,6 +86,14 @@ fun DashboardScreen(
     val isCurrentMonth = remember(monthKey) { monthKey == Time.monthKey() }
     val monthLabel = remember(monthKey, isCurrentMonth) {
         if (isCurrentMonth) "This month" else Time.formatMonthKey(monthKey)
+    }
+    val greeting = remember {
+        val hour = ZonedDateTime.now().hour
+        when (hour) {
+            in 5..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            else -> "Good evening"
+        }
     }
     val hide = profile.hideBalance
     val currency = profile.currencyCode
@@ -120,6 +137,7 @@ fun DashboardScreen(
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
+            .appBottomBarSafePadding()
             .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -131,7 +149,7 @@ fun DashboardScreen(
                 OverlineCaps("Home", color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Hi, ${profile.displayName}",
+                    "$greeting, ${profile.displayName}",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
@@ -150,12 +168,12 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "Savings shows the selected month’s deposits and also your accumulated deposits from earlier months.",
+                    "Savings shows each goal’s total saved, progress ring, and share of the target. Full history is on the Savings tab.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "Scroll sideways on Top expenses. Use Shortcuts to jump to Money, Budget, Bills, Savings, or Insights.",
+                    "Scroll sideways on Top expenses. Use Insights to see weekly tips from your spending patterns.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -167,70 +185,12 @@ fun DashboardScreen(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(dockShape)
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.35f),
-                            Color.White.copy(alpha = 0.08f),
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(400f, 400f),
-                    ),
-                    shape = dockShape,
-                )
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF1E3A5F),
-                            Color(0xFF2563EB),
-                            Color(0xFF0F766E),
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(900f, 520f),
-                    ),
-                )
-                .padding(22.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                OverlineCaps(
-                    monthLabel,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
-                )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    FuturisticStat(
-                        "Balance",
-                        MoneyFormat.format(currency, balance, hide),
-                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                        valueColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    FuturisticStat(
-                        "Income",
-                        MoneyFormat.format(currency, monthIncome, hide),
-                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                        valueColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    FuturisticStat(
-                        "Spent",
-                        MoneyFormat.format(currency, monthExpense, hide),
-                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                        valueColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                    FuturisticStat(
-                        "Left",
-                        MoneyFormat.format(currency, remaining, hide),
-                        labelColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
-                        valueColor = MaterialTheme.colorScheme.onPrimary,
-                    )
-                }
-            }
-        }
+        HeroSummaryCard(
+            overline = monthLabel,
+            headline = MoneyFormat.format(currency, balance, hide),
+            subline = "Income: ${MoneyFormat.format(currency, monthIncome, hide)}  •  Spent: ${MoneyFormat.format(currency, monthExpense, hide)}  •  Left: ${MoneyFormat.format(currency, remaining, hide)}",
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Column(Modifier.fillMaxWidth()) {
             Row(
@@ -289,110 +249,66 @@ fun DashboardScreen(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(savingsDockShape)
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.22f),
-                            Color.White.copy(alpha = 0.06f),
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(400f, 400f),
-                    ),
-                    shape = savingsDockShape,
+        NeoPanel(borderAlpha = 0.28f) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    Icons.Default.Savings,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
                 )
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFF004D40),
-                            Color(0xFF00796B),
-                            Color(0xFF26A69A),
-                        ),
-                        start = Offset(0f, 0f),
-                        end = Offset(880f, 480f),
-                    ),
+                Column {
+                    OverlineCaps("Savings", color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Goal progress",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            val savingsTileColors = remember {
+                listOf(
+                    Color(0xFF7C6FDB),
+                    Color(0xFF26A69A),
+                    Color(0xFF42A5F5),
+                    Color(0xFFEC407A),
+                    Color(0xFFFFB74D),
                 )
-                .padding(22.dp),
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+            }
+            if (savingsGoals.isEmpty()) {
+                Text(
+                    "No goals yet — add one in Savings.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp),
                 ) {
-                    Icon(
-                        Icons.Default.Savings,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.88f),
-                    )
-                    OverlineCaps(
-                        "$monthLabel · savings",
-                        color = Color.White.copy(alpha = 0.78f),
-                    )
-                }
-                if (!hasSavingsGoals) {
-                    Text(
-                        "Create a savings goal to track deposits, targets, and this month’s progress.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.88f),
-                    )
-                } else {
-                    val combinedTarget = savingsSnapshot.combinedTargetCents
-                    val totalSaved = savingsSnapshot.totalSavedCents
-
-                    val statsRow = Modifier.fillMaxWidth()
-                    val statsGap = 16.dp
-                    Row(statsRow, horizontalArrangement = Arrangement.spacedBy(statsGap)) {
-                        SavingsHomeStat(
-                            label = "$monthLabel savings",
-                            value = MoneyFormat.format(currency, selectedMonthSavingsCents, hide),
-                        )
-                        SavingsHomeStat(
-                            label = "Previous months savings",
-                            value = MoneyFormat.format(currency, previousMonthsSavingsCents, hide),
+                    itemsIndexed(
+                        savingsGoals,
+                        key = { _, g -> g.id },
+                    ) { index, goal ->
+                        SavingsGoalRingTile(
+                            rank = index + 1,
+                            name = goal.name,
+                            savedCents = goal.savedCents,
+                            targetCents = goal.targetCents,
+                            currencyCode = currency,
+                            hideMoney = hide,
+                            containerColor = savingsTileColors[index % savingsTileColors.size],
                         )
                     }
-                    Row(statsRow, horizontalArrangement = Arrangement.spacedBy(statsGap)) {
-                        SavingsHomeStat(
-                            label = "Total saved",
-                            value = MoneyFormat.format(currency, totalSaved, hide),
-                        )
-                        SavingsHomeStat(
-                            label = "Combined target",
-                            value = MoneyFormat.format(currency, combinedTarget, hide),
-                        )
-                    }
-
-                    val (barProgress, percentCaption) = if (combinedTarget > 0L) {
-                        val pct = ((totalSaved * 100L) / combinedTarget).toInt().coerceIn(0, 999)
-                        val bar = (totalSaved.toFloat() / combinedTarget.toFloat()).coerceIn(0f, 1f)
-                        bar to "$pct% toward combined goal target"
-                    } else {
-                        0f to "Add savings goals with targets to see progress"
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        percentCaption,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.White.copy(alpha = 0.92f),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { barProgress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(999.dp)),
-                        color = Color.White,
-                        trackColor = Color.White.copy(alpha = 0.28f),
-                    )
                 }
-                TextButton(onClick = onOpenSavings) {
-                    Text("Open savings", color = Color.White)
-                }
+            }
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onOpenSavings, modifier = Modifier.fillMaxWidth()) {
+                Text("Open Savings", color = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -484,59 +400,129 @@ fun DashboardScreen(
             }
         }
 
-        OverlineCaps("Shortcuts", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        val outlineBtn = BorderStroke(1.dp, accentStroke)
-        val btnColors = ButtonDefaults.outlinedButtonColors(
-            contentColor = MaterialTheme.colorScheme.primary,
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = onOpenTransactions,
-                modifier = Modifier.weight(1f),
-                border = outlineBtn,
-                shape = MaterialTheme.shapes.medium,
-                colors = btnColors,
-            ) {
-                Text("Money log")
-            }
-            OutlinedButton(
-                onClick = onOpenBudget,
-                modifier = Modifier.weight(1f),
-                border = outlineBtn,
-                shape = MaterialTheme.shapes.medium,
-                colors = btnColors,
-            ) {
-                Text("Budget")
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = onOpenBills,
-                modifier = Modifier.weight(1f),
-                border = outlineBtn,
-                shape = MaterialTheme.shapes.medium,
-                colors = btnColors,
-            ) { Text("Bills") }
-            OutlinedButton(
-                onClick = onOpenSavings,
-                modifier = Modifier.weight(1f),
-                border = outlineBtn,
-                shape = MaterialTheme.shapes.medium,
-                colors = btnColors,
-            ) { Text("Savings") }
-        }
-        OutlinedButton(
+        TextButton(
             onClick = onOpenInsights,
             modifier = Modifier.fillMaxWidth(),
-            border = outlineBtn,
-            shape = MaterialTheme.shapes.medium,
-            colors = btnColors,
         ) {
-            Text("Insights")
+            Text("Open Insights", color = MaterialTheme.colorScheme.primary)
         }
     }
 
+}
+
+@Composable
+private fun SavingsGoalRingTile(
+    rank: Int,
+    name: String,
+    savedCents: Long,
+    targetCents: Long,
+    currencyCode: String,
+    hideMoney: Boolean,
+    containerColor: Color,
+) {
+    val safeTarget = targetCents.coerceAtLeast(1L)
+    val ratio = (savedCents.coerceAtLeast(0L).toFloat() / safeTarget.toFloat()).coerceIn(0f, 1f)
+    val pctForLabel = remember(savedCents, targetCents) {
+        if (targetCents > 0L) {
+            ((savedCents.coerceAtLeast(0L).toDouble() / targetCents.toDouble()) * 100).roundToInt()
+        } else {
+            0
+        }
+    }
+    val anim = remember { Animatable(0f) }
+    LaunchedEffect(savedCents, targetCents) {
+        anim.snapTo(0f)
+        anim.animateTo(1f, tween(durationMillis = 640, easing = FastOutSlowInEasing))
+    }
+    val sweep = 360f * ratio * anim.value
+    val trackColor = Color.White.copy(alpha = 0.32f)
+    val ringColor = Color.White.copy(alpha = 0.95f)
+    val savedText = MoneyFormat.format(currencyCode, savedCents.coerceAtLeast(0L), hideMoney)
+
+    Column(
+        modifier = Modifier
+            .width(160.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(containerColor)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.38f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    rank.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            name,
+            style = MaterialTheme.typography.titleSmall,
+            color = Color.White,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(10.dp))
+        Box(
+            modifier = Modifier.size(118.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                val strokePx = min(size.width, size.height) * 0.09f
+                val diameter = min(size.width, size.height) - strokePx
+                val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+                val arcSize = Size(diameter, diameter)
+                val ringStroke = Stroke(width = strokePx, cap = StrokeCap.Round)
+                drawArc(
+                    color = trackColor,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = ringStroke,
+                )
+                if (sweep > 0.06f) {
+                    drawArc(
+                        color = ringColor,
+                        startAngle = -90f,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        topLeft = topLeft,
+                        size = arcSize,
+                        style = ringStroke,
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    savedText,
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        letterSpacing = 0.2.sp,
+                        lineHeight = 18.sp,
+                    ),
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (targetCents > 0L) "$pctForLabel%" else "—",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White.copy(alpha = 0.9f),
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -585,48 +571,5 @@ private fun ExpenseCategoryTile(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-    }
-}
-
-@Composable
-private fun RowScope.SavingsHomeStat(
-    label: String,
-    value: String,
-) {
-    Column(
-        modifier = Modifier.weight(1f),
-        horizontalAlignment = Alignment.Start,
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.4.sp),
-            color = Color.White.copy(alpha = 0.82f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Spacer(Modifier.height(6.dp))
-        DataFigure(
-            text = value,
-            color = Color.White,
-            compact = true,
-        )
-    }
-}
-
-@Composable
-private fun RowScope.FuturisticStat(
-    label: String,
-    value: String,
-    labelColor: Color,
-    valueColor: Color,
-) {
-    Column(Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.4.sp),
-            color = labelColor,
-        )
-        Spacer(Modifier.height(6.dp))
-        DataFigure(text = value, color = valueColor, compact = true)
     }
 }

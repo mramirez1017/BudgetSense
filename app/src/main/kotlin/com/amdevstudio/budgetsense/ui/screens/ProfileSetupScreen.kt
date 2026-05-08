@@ -33,6 +33,7 @@ import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.SupportedCurrencies
 import com.amdevstudio.budgetsense.domain.currencyChipLabel
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
+import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
@@ -89,68 +90,72 @@ fun ProfileSetupScreen(
                 )
             }
         }
-        Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Display name") },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Spacer(Modifier.height(12.dp))
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Display name") },
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-        Text(
-            "Currency for all amounts",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(SupportedCurrencies, key = { it }) { code ->
-                val chipColors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
-                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                Text(
+                    "Currency for all amounts",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                FilterChip(
-                    selected = currency == code,
-                    onClick = { currency = code },
-                    label = { Text(currencyChipLabel(code)) },
-                    colors = chipColors,
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(SupportedCurrencies, key = { it }) { code ->
+                        val chipColors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        FilterChip(
+                            selected = currency == code,
+                            onClick = { currency = code },
+                            label = { Text(currencyChipLabel(code)) },
+                            colors = chipColors,
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = incomeText,
+                    onValueChange = { incomeText = it },
+                    label = { Text("Typical monthly income (optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
                 )
+
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    onClick = {
+                        dismissKeyboard()
+                        val cents = incomeText.trim().replace(",", ".").toBigDecimalOrNull()
+                            ?.multiply(BigDecimal(100))?.toLong() ?: 0L
+                        onSave(
+                            initial.copy(
+                                displayName = name.trim().ifBlank { initial.displayName },
+                                currencyCode = currency,
+                                monthlyIncomeCents = cents,
+                                onboardingComplete = true,
+                            ),
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Save and continue", style = MaterialTheme.typography.titleMedium)
+                }
             }
         }
-
-        OutlinedTextField(
-            value = incomeText,
-            onValueChange = { incomeText = it },
-            label = { Text("Typical monthly income (optional)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(Modifier.height(16.dp))
-        Button(
-            shape = MaterialTheme.shapes.medium,
-            onClick = {
-                dismissKeyboard()
-                val cents = incomeText.trim().replace(",", ".").toBigDecimalOrNull()
-                    ?.multiply(BigDecimal(100))?.toLong() ?: 0L
-                onSave(
-                    initial.copy(
-                        displayName = name.trim().ifBlank { initial.displayName },
-                        currencyCode = currency,
-                        monthlyIncomeCents = cents,
-                        onboardingComplete = true,
-                    ),
-                )
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Save and continue")
-        }
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(28.dp))
         }
     }
 }

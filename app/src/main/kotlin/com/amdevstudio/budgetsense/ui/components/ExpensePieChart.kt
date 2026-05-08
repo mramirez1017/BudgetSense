@@ -22,12 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.domain.MoneyFormat
 import kotlin.math.min
 
 /**
- * Animated donut chart for expense breakdown. [slices] are category name to cents.
+ * Animated ring chart for expense breakdown. [slices] are category name to cents.
  */
 @Composable
 fun MonthExpensePieChart(
@@ -36,9 +38,10 @@ fun MonthExpensePieChart(
     slices: List<Pair<String, Long>>,
     modifier: Modifier = Modifier,
 ) {
-    val total = slices.sumOf { it.second }.coerceAtLeast(1L).toFloat()
+    val totalCents = slices.sumOf { it.second }.coerceAtLeast(1L)
+    val total = totalCents.toFloat()
     val palette = chartPalette()
-    val holeColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
     val sliceKey = remember(slices) { slices.joinToString("|") { "${it.first}:${it.second}" } }
     val anim = remember { Animatable(0f) }
     LaunchedEffect(sliceKey) {
@@ -51,11 +54,24 @@ fun MonthExpensePieChart(
         Canvas(
             modifier = Modifier.size(200.dp),
         ) {
-            val stroke = min(size.width, size.height) * 0.12f
+            val stroke = min(size.width, size.height) * 0.11f
             val diameter = min(size.width, size.height) - stroke
             val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
             val arcSize = Size(diameter, diameter)
+            val ring = Stroke(width = stroke, cap = StrokeCap.Round)
             var start = -90f
+
+            // Track ring behind slices
+            drawArc(
+                color = trackColor,
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = ring,
+            )
+
             slices.forEachIndexed { index, (_, cents) ->
                 val sweep = (cents / total) * 360f * progress
                 if (sweep > 0.05f) {
@@ -63,21 +79,22 @@ fun MonthExpensePieChart(
                         color = palette[index % palette.size],
                         startAngle = start,
                         sweepAngle = sweep,
-                        useCenter = true,
+                        useCenter = false,
                         topLeft = topLeft,
                         size = arcSize,
+                        style = ring,
                     )
                     start += sweep
                 }
             }
-            drawCircle(
-                color = holeColor,
-                radius = (diameter / 2f) - stroke * 0.85f,
-                center = Offset(size.width / 2f, size.height / 2f),
-            )
         }
 
         Spacer(Modifier.height(12.dp))
+        Text(
+            "Total: ${MoneyFormat.format(currencyCode, totalCents, hideMoney)}",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp),

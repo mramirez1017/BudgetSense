@@ -1,6 +1,7 @@
 package com.amdevstudio.budgetsense.domain
 
 import com.amdevstudio.budgetsense.data.local.TransactionType
+import com.amdevstudio.budgetsense.data.local.entity.SavingsContributionEntity
 import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 
 object Insights {
@@ -52,5 +53,64 @@ object Insights {
             out += "Nice — no urgent alerts. Keep logging expenses for sharper tips."
         }
         return out.take(6)
+    }
+
+    /** Tips based on savings deposits (contributions), not expense transactions. */
+    fun buildSavingsInsights(
+        contributions: List<SavingsContributionEntity>,
+        currencyCode: String,
+        hideMoney: Boolean,
+    ): List<String> {
+        val out = mutableListOf<String>()
+        if (contributions.isEmpty()) {
+            out += "No savings deposits yet — add goals and deposits in Savings to see month-to-month insights."
+            return out
+        }
+        if (hideMoney) {
+            out += "Turn off hide balance in Account to see savings amounts in Insights."
+            return out
+        }
+
+        val byMonth = contributions.groupBy { Time.monthKeyFromEpochMillis(it.createdAtMillis) }
+            .mapValues { (_, v) -> v.sumOf { it.amountCents } }
+            .filterValues { it > 0L }
+
+        val currentKey = Time.monthKey()
+        val prevKey = Time.previousMonthKey(currentKey)
+        val thisMonth = byMonth[currentKey] ?: 0L
+        val lastMonth = byMonth[prevKey] ?: 0L
+
+        if (thisMonth > 0L && lastMonth > 0L) {
+            if (thisMonth > lastMonth) {
+                out +=
+                    "You saved more this month than last (${MoneyFormat.format(currencyCode, thisMonth, false)} vs ${MoneyFormat.format(currencyCode, lastMonth, false)})."
+            } else if (lastMonth > thisMonth) {
+                out +=
+                    "Last month you saved more than this month so far (${MoneyFormat.format(currencyCode, lastMonth, false)} vs ${MoneyFormat.format(currencyCode, thisMonth, false)}) — there’s still time to catch up."
+            }
+        } else if (thisMonth > 0L && lastMonth == 0L) {
+            out += "Nice — you’ve started saving this month (${MoneyFormat.format(currencyCode, thisMonth, false)} in deposits)."
+        }
+
+        val best = byMonth.maxByOrNull { it.value }
+        if (best != null && best.value > 0L) {
+            val label = Time.formatMonthKey(best.key)
+            if (best.key != currentKey || byMonth.size > 1) {
+                out +=
+                    "Your biggest savings month recorded here is $label (${MoneyFormat.format(currencyCode, best.value, false)} total deposits)."
+            }
+        }
+
+        val biggestDeposit = contributions.maxByOrNull { it.amountCents }
+        if (biggestDeposit != null && biggestDeposit.amountCents > 0L) {
+            val whenLabel = Time.formatMonthKey(Time.monthKeyFromEpochMillis(biggestDeposit.createdAtMillis))
+            out +=
+                "Your single largest deposit was ${MoneyFormat.format(currencyCode, biggestDeposit.amountCents, false)} ($whenLabel)."
+        }
+
+        if (out.isEmpty()) {
+            out += "Keep adding deposits — Insights will highlight your best savings months."
+        }
+        return out.take(4)
     }
 }

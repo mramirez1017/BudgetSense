@@ -10,7 +10,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
@@ -20,20 +22,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -50,7 +52,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -68,9 +72,7 @@ import com.amdevstudio.budgetsense.data.repository.BudgetRepository
 import com.amdevstudio.budgetsense.data.repository.ProfileRepository
 import com.amdevstudio.budgetsense.data.repository.SavingsRepository
 import com.amdevstudio.budgetsense.data.repository.TransactionRepository
-import com.amdevstudio.budgetsense.domain.SavingsMonthSnapshot
 import com.amdevstudio.budgetsense.domain.Time
-import com.amdevstudio.budgetsense.domain.buildSavingsMonthSnapshot
 import com.amdevstudio.budgetsense.ui.screens.BillsScreen
 import com.amdevstudio.budgetsense.ui.screens.BudgetPlannerScreen
 import com.amdevstudio.budgetsense.ui.screens.DashboardScreen
@@ -85,10 +87,14 @@ import com.amdevstudio.budgetsense.ui.screens.SettingsScreen
 import com.amdevstudio.budgetsense.ui.screens.TransactionEditScreen
 import com.amdevstudio.budgetsense.ui.screens.TransactionsScreen
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
+import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
+import com.amdevstudio.budgetsense.ui.components.PillBottomNav
+import com.amdevstudio.budgetsense.ui.components.PillNavItem
 import com.amdevstudio.budgetsense.ui.util.rememberNetworkAvailable
 import com.amdevstudio.budgetsense.ui.util.userFacingMessage
 import com.amdevstudio.budgetsense.data.local.entity.BudgetCategoryCapEntity
+import com.amdevstudio.budgetsense.data.local.entity.BillReminderEntity
 import com.amdevstudio.budgetsense.data.local.entity.SavingsContributionEntity
 import com.amdevstudio.budgetsense.data.local.entity.SavingsGoalEntity
 import com.amdevstudio.budgetsense.data.local.entity.BudgetPlanEntity
@@ -96,6 +102,7 @@ import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -231,25 +238,10 @@ fun BudgetSenseRoot(
             if (uid == null) flowOf(emptyList<SavingsContributionEntity>()) else savingsRepository.observeAllContributions(uid)
         }
         val savingsContribs by savingsContribsFlow.collectAsStateWithLifecycle(initialValue = emptyList<SavingsContributionEntity>())
-        val savingsSnapshot = remember(savingsGoals, savingsContribs) {
-            // monthKey affects savedThisMonth, but we compute selected-month savings separately for the dashboard.
-            buildSavingsMonthSnapshot(savingsGoals, savingsContribs, Time.monthKey())
+        val billsFlow: Flow<List<BillReminderEntity>> = remember(uid, billRepository) {
+            if (uid == null) flowOf(emptyList()) else billRepository.observeAll(uid)
         }
-
-        val selectedMonthStart = remember(monthKey) { Time.startOfMonthMillis(monthKey) }
-        val selectedMonthEnd = remember(monthKey) { Time.endOfMonthMillis(monthKey) }
-        val selectedMonthSavingsCents = remember(savingsContribs, selectedMonthStart, selectedMonthEnd) {
-            savingsContribs
-                .asSequence()
-                .filter { it.createdAtMillis >= selectedMonthStart && it.createdAtMillis < selectedMonthEnd }
-                .sumOf { it.amountCents }
-        }
-        val previousMonthsSavingsCents = remember(savingsContribs, selectedMonthStart) {
-            savingsContribs
-                .asSequence()
-                .filter { it.createdAtMillis < selectedMonthStart }
-                .sumOf { it.amountCents }
-        }
+        val bills by billsFlow.collectAsStateWithLifecycle(initialValue = emptyList<BillReminderEntity>())
 
         NavHost(
             navController = navController,
@@ -394,6 +386,8 @@ fun BudgetSenseRoot(
                     profileRepository = profileRepository,
                     transactionRepository = transactionRepository,
                     budgetRepository = budgetRepository,
+                    billRepository = billRepository,
+                    savingsRepository = savingsRepository,
                     snackbarHostState = snackbarHostState,
                     selectedTab = selectedTab,
                     onTabSelected = { selectedTab = it },
@@ -405,10 +399,9 @@ fun BudgetSenseRoot(
                     allTxs = allTxs,
                     budgetPlan = budgetPlan,
                     budgetCaps = budgetCaps,
-                    savingsSnapshot = savingsSnapshot,
-                    selectedMonthSavingsCents = selectedMonthSavingsCents,
-                    previousMonthsSavingsCents = previousMonthsSavingsCents,
-                    hasSavingsGoals = savingsGoals.isNotEmpty(),
+                    savingsGoals = savingsGoals,
+                    savingsContribs = savingsContribs,
+                    bills = bills,
                     appPrefs = appPrefs,
                     onOpenAbout = { navController.navigate("about") },
                     onOpenFaq = { navController.navigate("faq") },
@@ -447,12 +440,13 @@ fun BudgetSenseRoot(
                         navController.navigateToLoginReplacingBackStack()
                     }
                 } else {
-                    val bills by billRepository.observeAll(user.uid).collectAsStateWithLifecycle(initialValue = emptyList())
+                    // Bills is now a bottom-tab; keep this route for legacy deep-links.
                     BillsScreen(
                         repository = billRepository,
                         bills = bills,
                         userId = user.uid,
                         onBack = { navController.popBackStack() },
+                        showTopBar = true,
                     )
                 }
             }
@@ -477,6 +471,8 @@ fun BudgetSenseRoot(
                             repository = savingsRepository,
                             goals = goals,
                             onBack = { navController.popBackStack() },
+                            showTopBar = true,
+                            monthKey = monthKey,
                         )
                     }
                 }
@@ -498,6 +494,7 @@ fun BudgetSenseRoot(
                             profile = p,
                             allTransactions = allTxs,
                             categoryCaps = capMap,
+                            savingsContributions = savingsContribs,
                             onBack = { navController.popBackStack() },
                         )
                     }
@@ -546,6 +543,9 @@ private fun AppLockScreen(
     onUnlocked: () -> Unit,
 ) {
     val context = LocalContext.current
+    val lockscreenDrawableId = remember(context) {
+        context.resources.getIdentifier("lockscreen", "drawable", context.packageName)
+    }
     var error by remember { mutableStateOf<String?>(null) }
 
     fun launchPrompt() {
@@ -595,25 +595,56 @@ private fun AppLockScreen(
         launchPrompt()
     }
 
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (lockscreenDrawableId != 0) {
+            Image(
+                painter = painterResource(lockscreenDrawableId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.78f)),
+            )
+        } else {
+            BudgetSenseAmbientBackground(Modifier.fillMaxSize())
+        }
+
         Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.Center,
         ) {
-            OverlineCaps("Locked", color = MaterialTheme.colorScheme.primary)
-            Text("BudgetSense is locked", style = MaterialTheme.typography.headlineSmall)
-            if (error != null) {
-                Text(
-                    error!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = 30.dp,
+                accent = MaterialTheme.colorScheme.primary,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                ) {
+                    OverlineCaps("Locked", color = MaterialTheme.colorScheme.primary)
+                    Text("BudgetSense is locked", style = MaterialTheme.typography.headlineSmall)
+                    if (error != null) {
+                        Text(
+                            error!!,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = { launchPrompt() }) { Text("Unlock") }
+                }
             }
-            TextButton(onClick = { launchPrompt() }) { Text("Unlock") }
         }
     }
 }
@@ -626,6 +657,8 @@ private fun MainShell(
     profileRepository: ProfileRepository,
     transactionRepository: TransactionRepository,
     budgetRepository: BudgetRepository,
+    billRepository: BillRepository,
+    savingsRepository: SavingsRepository,
     snackbarHostState: SnackbarHostState,
     selectedTab: String,
     onTabSelected: (String) -> Unit,
@@ -637,10 +670,9 @@ private fun MainShell(
     allTxs: List<TransactionEntity>,
     budgetPlan: BudgetPlanEntity?,
     budgetCaps: List<BudgetCategoryCapEntity>,
-    savingsSnapshot: SavingsMonthSnapshot,
-    selectedMonthSavingsCents: Long,
-    previousMonthsSavingsCents: Long,
-    hasSavingsGoals: Boolean,
+    savingsGoals: List<SavingsGoalEntity>,
+    savingsContribs: List<SavingsContributionEntity>,
+    bills: List<BillReminderEntity>,
     appPrefs: SharedPreferences,
     onOpenAbout: () -> Unit,
     onOpenFaq: () -> Unit,
@@ -662,8 +694,10 @@ private fun MainShell(
     val tabs = remember {
         listOf(
             Tab("dashboard", "Home", Icons.Default.Home),
+            Tab("savings", "Savings", Icons.Default.Savings),
             Tab("transactions", "Money", Icons.Default.AccountBalanceWallet),
             Tab("budget", "Budget", Icons.Default.PieChart),
+            Tab("bills", "Bills", Icons.Default.ReceiptLong),
             Tab("settings", "Account", Icons.Default.Person),
         )
     }
@@ -671,42 +705,23 @@ private fun MainShell(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            // Rounded shell via Surface — avoid Modifier.clip on the bar itself, which can shrink
-            // hit targets for the first NavigationBarItem (Home) near the rounded edge.
-            Surface(
+            val navScroll = rememberScrollState()
+            val items = tabs.map { PillNavItem(it.route, it.label, it.icon) }
+            Box(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(36.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                ),
+                    .horizontalScroll(navScroll)
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                NavigationBar(
-                    containerColor = Color.Transparent,
-                    tonalElevation = 0.dp,
-                ) {
-                    tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = selectedTab == tab.route,
-                            onClick = { onTabSelected(tab.route) },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
-                            label = { Text(tab.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
-                }
+                PillBottomNav(
+                    items = items,
+                    selectedId = selectedTab,
+                    onSelected = onTabSelected,
+                    homeId = "dashboard",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
             }
         },
     ) { innerPadding ->
@@ -741,14 +756,11 @@ private fun MainShell(
                     monthTransactions = monthTxs,
                     monthKey = monthKey,
                     onMonthKeyChanged = onMonthKeyChanged,
-                    savingsSnapshot = savingsSnapshot,
-                    selectedMonthSavingsCents = selectedMonthSavingsCents,
-                    previousMonthsSavingsCents = previousMonthsSavingsCents,
-                    hasSavingsGoals = hasSavingsGoals,
+                    savingsGoals = savingsGoals,
                     onOpenTransactions = { onTabSelected("transactions") },
                     onOpenBudget = { onTabSelected("budget") },
-                    onOpenBills = { navController.navigate("bills") },
-                    onOpenSavings = { navController.navigate("savings") },
+                    onOpenBills = { onTabSelected("bills") },
+                    onOpenSavings = { onTabSelected("savings") },
                     onOpenInsights = { navController.navigate("insights") },
                 )
 
@@ -775,6 +787,24 @@ private fun MainShell(
                     caps = budgetCaps,
                     repository = budgetRepository,
                     currencyCode = p.currencyCode,
+                )
+
+                "bills" -> BillsScreen(
+                    repository = billRepository,
+                    bills = bills,
+                    userId = user.uid,
+                    onBack = { onTabSelected("dashboard") },
+                    showTopBar = false,
+                )
+
+                "savings" -> SavingsScreen(
+                    profile = p,
+                    userId = user.uid,
+                    repository = savingsRepository,
+                    goals = savingsGoals,
+                    onBack = { onTabSelected("dashboard") },
+                    showTopBar = false,
+                    monthKey = monthKey,
                 )
 
                 "settings" -> SettingsScreen(

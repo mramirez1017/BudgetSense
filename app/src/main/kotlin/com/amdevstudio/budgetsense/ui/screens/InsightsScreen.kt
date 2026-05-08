@@ -24,13 +24,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.local.TransactionType
+import com.amdevstudio.budgetsense.data.local.entity.SavingsContributionEntity
 import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.Insights
 import com.amdevstudio.budgetsense.domain.Time
-import com.amdevstudio.budgetsense.ui.components.NeoPanel
+import com.amdevstudio.budgetsense.ui.components.NeonCalloutCard
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
+import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +40,7 @@ fun InsightsScreen(
     profile: UserProfileEntity,
     allTransactions: List<TransactionEntity>,
     categoryCaps: Map<String, Long>,
+    savingsContributions: List<SavingsContributionEntity>,
     onBack: () -> Unit,
 ) {
     val monthKey = remember { Time.monthKey() }
@@ -65,12 +68,23 @@ fun InsightsScreen(
         }
     }
 
-    val lines = remember(profile, thisWeek, lastWeek, monthExpenses, categoryCaps) {
+    val lines = remember(
+        profile,
+        thisWeek,
+        lastWeek,
+        monthExpenses,
+        categoryCaps,
+        savingsContributions,
+    ) {
         Insights.build(
             thisWeekExpenses = thisWeek,
             lastWeekExpenses = lastWeek,
             monthExpenses = monthExpenses,
             categoryCaps = categoryCaps,
+            currencyCode = profile.currencyCode,
+            hideMoney = profile.hideBalance,
+        ) + Insights.buildSavingsInsights(
+            contributions = savingsContributions,
             currencyCode = profile.currencyCode,
             hideMoney = profile.hideBalance,
         )
@@ -94,12 +108,12 @@ fun InsightsScreen(
                 actions = {
                     ScreenHelpIconButton(title = "Insights") {
                         Text(
-                            "Insights compares this week and last week’s spending and uses your category limits from the Budget tab. Add more transactions so the tips reflect your real habits.",
+                            "Expense tips compare this week vs last week’s spending and use category limits from Budget. Savings tips use your Savings deposits month by month.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            "Tip: month selection is controlled from Home; Insights focuses on week-to-week trends.",
+                            "Global month selection is on Home — Money and Budget follow it. Insights spending tips follow the calendar month.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -117,12 +131,17 @@ fun InsightsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(padding)
+                .appBottomBarSafePadding()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             lines.forEach { line ->
-                NeoPanel(borderAlpha = 0.25f, fillAlpha = 0.68f) {
-                    Text(line, style = MaterialTheme.typography.bodyLarge)
+                NeonCalloutCard {
+                    Text(
+                        line,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
                 }
             }
         }

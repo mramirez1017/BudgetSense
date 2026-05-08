@@ -41,6 +41,7 @@ import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.data.repository.TransactionRepository
 import com.amdevstudio.budgetsense.domain.Categories
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseDateField
+import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
@@ -122,13 +123,18 @@ fun TransactionEditScreen(
             )
         },
     ) { padding ->
-        Column(
+        GlassCard(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
+                .fillMaxWidth()
                 .padding(padding)
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            cornerRadius = 28.dp,
         ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
 
         ExposedDropdownMenuBox(expanded = typeMenu, onExpandedChange = { typeMenu = !typeMenu }) {
             OutlinedTextField(
@@ -191,6 +197,7 @@ fun TransactionEditScreen(
             onValueChange = { note = it },
             label = { Text("Note") },
             modifier = Modifier.fillMaxWidth(),
+            maxLines = 4,
         )
         BudgetSenseDateField(
             label = "Date",
@@ -246,6 +253,7 @@ fun TransactionEditScreen(
                 ) { Text("Delete") }
             }
         }
+            }
         }
     }
 }
