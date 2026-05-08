@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BillDao {
-    @Query("SELECT * FROM bills ORDER BY dueAtMillis ASC")
-    fun observeAll(): Flow<List<BillReminderEntity>>
+    @Query("SELECT * FROM bills WHERE userId = :userId ORDER BY dueAtMillis ASC")
+    fun observeAll(userId: String): Flow<List<BillReminderEntity>>
+
+    @Query("SELECT * FROM bills WHERE userId = :userId")
+    suspend fun getAllForUser(userId: String): List<BillReminderEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(bill: BillReminderEntity)

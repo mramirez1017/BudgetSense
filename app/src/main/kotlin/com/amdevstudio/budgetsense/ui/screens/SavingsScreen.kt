@@ -113,7 +113,12 @@ fun SavingsScreen(
                 actions = {
                     ScreenHelpIconButton(title = "Savings") {
                         Text(
-                            "Collapse a goal to see recent deposits. Expand it for full history, edit details, delete the goal, or add money toward the target.",
+                            "Create goals to track saved amounts and deposit history. Expand a goal to see the full deposit log, edit details, or delete it.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "Savings goals and deposits are stored on your phone first and sync to your account when you’re online.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

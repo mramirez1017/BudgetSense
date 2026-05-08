@@ -40,6 +40,7 @@ import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseDateField
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
+import com.amdevstudio.budgetsense.notifications.BillReminderScheduler
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -52,10 +53,12 @@ import java.util.UUID
 fun BillsScreen(
     repository: BillRepository,
     bills: List<BillReminderEntity>,
+    userId: String,
     onBack: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val dismissKeyboard = rememberKeyboardDismiss()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("") }
     var dueDate by remember { mutableStateOf(LocalDate.now()) }
@@ -74,7 +77,17 @@ fun BillsScreen(
                 actions = {
                     ScreenHelpIconButton(title = "Bill reminders") {
                         Text(
-                            "Add a bill with a name, due date, and whether it repeats each month. Choose how many days before the due date you want a heads-up. Check “Paid this month” after you pay so you can track it against the current month.",
+                            "Add a bill with a name, due date, and whether it repeats each month. Choose how many days before the due date you want a heads-up.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "BudgetSense schedules notifications on this phone. On Android 13+, allow notification permission or reminders won’t show.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "Mark “Paid this month” after you pay so you can track it.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -114,9 +127,17 @@ fun BillsScreen(
                                 onCheckedChange = { checked ->
                                     scope.launch {
                                         repository.upsert(
+                                            userId,
                                             bill.copy(
                                                 lastPaidPeriod = if (checked) Time.monthKey() else null,
                                             ),
+                                        )
+                                        BillReminderScheduler.schedule(
+                                            context = context,
+                                            billId = bill.id,
+                                            title = bill.title,
+                                            dueAtMillis = bill.dueAtMillis,
+                                            notifyDaysBefore = bill.notifyDaysBefore,
                                         )
                                     }
                                 },
@@ -160,6 +181,7 @@ fun BillsScreen(
                         dismissKeyboard()
                         val entity = BillReminderEntity(
                             id = UUID.randomUUID().toString(),
+                            userId = userId,
                             title = title.trim().ifBlank { "Bill" },
                             dueAtMillis = millis,
                             repeatMonthly = repeat,
@@ -168,7 +190,14 @@ fun BillsScreen(
                         )
                         scope.launch {
                             try {
-                                repository.upsert(entity)
+                                repository.upsert(userId, entity)
+                                BillReminderScheduler.schedule(
+                                    context = context,
+                                    billId = entity.id,
+                                    title = entity.title,
+                                    dueAtMillis = entity.dueAtMillis,
+                                    notifyDaysBefore = entity.notifyDaysBefore,
+                                )
                             } catch (_: Exception) {
                                 return@launch
                             }

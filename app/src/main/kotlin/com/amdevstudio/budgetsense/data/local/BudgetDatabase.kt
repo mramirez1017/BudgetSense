@@ -28,7 +28,7 @@ import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
         SavingsGoalEntity::class,
         SavingsContributionEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

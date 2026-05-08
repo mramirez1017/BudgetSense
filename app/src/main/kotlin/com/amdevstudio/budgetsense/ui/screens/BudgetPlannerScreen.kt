@@ -109,12 +109,12 @@ fun BudgetPlannerScreen(
             }
             ScreenHelpIconButton(title = "Budget planner") {
                 Text(
-                    "Enter how much you intend to spend overall this month (monthly budget total). Daily and weekly limits are optional reminders so you pace spending across the month.",
+                    "Enter how much you intend to spend overall for the selected month (monthly budget total). Daily and weekly limits are optional reminders to pace spending.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "Per-category limits are optional. Example: cap “Food” — Money and Insights use those caps to show progress and tips.",
+                    "Per-category limits are optional. Example: cap “Food” — Money uses those caps to show progress by category.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

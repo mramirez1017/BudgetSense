@@ -21,6 +21,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +48,7 @@ fun SettingsScreen(
     profileRepository: ProfileRepository,
     authRepository: AuthRepository,
     transactionRepository: TransactionRepository,
+    appPrefs: android.content.SharedPreferences,
     onOpenAbout: () -> Unit,
     onOpenFaq: () -> Unit,
     onOpenCurrencyConverter: () -> Unit,
@@ -51,6 +56,8 @@ fun SettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val appLockKey = "app_lock_enabled"
+    var appLockEnabled by remember { mutableStateOf(appPrefs.getBoolean(appLockKey, false)) }
 
     Column(
         modifier = Modifier
@@ -77,6 +84,11 @@ fun SettingsScreen(
                 )
                 Text(
                     "Currency sets how amounts are labeled everywhere. It does not convert past entries.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "App lock can require Face/Fingerprint or your device PIN/pattern/password to open BudgetSense.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -155,6 +167,24 @@ fun SettingsScreen(
                             profileRepository.syncProfileToCloud(updated)
                         }
                     }
+                },
+            )
+        }
+
+        NeoPanel(borderAlpha = 0.28f) {
+            Text("App lock", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Require Face/Fingerprint or device PIN/pattern/password to open BudgetSense.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+            Switch(
+                checked = appLockEnabled,
+                onCheckedChange = { checked ->
+                    appLockEnabled = checked
+                    appPrefs.edit().putBoolean(appLockKey, checked).apply()
                 },
             )
         }

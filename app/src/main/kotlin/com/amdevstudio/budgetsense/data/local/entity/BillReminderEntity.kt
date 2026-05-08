@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "bills")
 data class BillReminderEntity(
     @PrimaryKey val id: String,
+    val userId: String,
     val title: String,
     val dueAtMillis: Long,
     val repeatMonthly: Boolean,
