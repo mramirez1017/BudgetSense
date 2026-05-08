@@ -121,6 +121,7 @@ fun BudgetSenseRoot(
         withContext(Dispatchers.IO) {
             try {
                 transactionRepository.syncWithCloud(uid)
+                savingsRepository.syncWithCloud(uid)
             } catch (_: Exception) {
                 // Offline or Firestore errors; local Room data still works
             }
@@ -141,7 +142,7 @@ fun BudgetSenseRoot(
     ) { padding ->
         // Collect above NavHost so flows stay active on transaction_edit / bills / etc.
         // (MainShell is not composed when those screens are shown; in-shell collection missed Room updates.)
-        val monthKey = remember { Time.monthKey() }
+        var monthKey by rememberSaveable { mutableStateOf(Time.monthKey()) }
         val uid = authUser?.uid
         val profileFlow = remember(uid) {
             if (uid == null) flowOf<UserProfileEntity?>(null) else profileRepository.observe(uid)
@@ -167,12 +168,32 @@ fun BudgetSenseRoot(
             if (uid == null) flowOf(emptyList<BudgetCategoryCapEntity>()) else budgetRepository.observeCategoryCaps(monthKey)
         }
         val budgetCaps by budgetCapsFlow.collectAsStateWithLifecycle(initialValue = emptyList<BudgetCategoryCapEntity>())
-        val savingsGoalsFlow = remember(savingsRepository) { savingsRepository.observeAll() }
+        val savingsGoalsFlow = remember(uid, savingsRepository) {
+            if (uid == null) flowOf(emptyList<SavingsGoalEntity>()) else savingsRepository.observeAll(uid)
+        }
         val savingsGoals by savingsGoalsFlow.collectAsStateWithLifecycle(initialValue = emptyList<SavingsGoalEntity>())
-        val savingsContribsFlow = remember(savingsRepository) { savingsRepository.observeAllContributions() }
+        val savingsContribsFlow = remember(uid, savingsRepository) {
+            if (uid == null) flowOf(emptyList<SavingsContributionEntity>()) else savingsRepository.observeAllContributions(uid)
+        }
         val savingsContribs by savingsContribsFlow.collectAsStateWithLifecycle(initialValue = emptyList<SavingsContributionEntity>())
-        val savingsSnapshot = remember(savingsGoals, savingsContribs, monthKey) {
-            buildSavingsMonthSnapshot(savingsGoals, savingsContribs, monthKey)
+        val savingsSnapshot = remember(savingsGoals, savingsContribs) {
+            // monthKey affects savedThisMonth, but we compute selected-month savings separately for the dashboard.
+            buildSavingsMonthSnapshot(savingsGoals, savingsContribs, Time.monthKey())
+        }
+
+        val selectedMonthStart = remember(monthKey) { Time.startOfMonthMillis(monthKey) }
+        val selectedMonthEnd = remember(monthKey) { Time.endOfMonthMillis(monthKey) }
+        val selectedMonthSavingsCents = remember(savingsContribs, selectedMonthStart, selectedMonthEnd) {
+            savingsContribs
+                .asSequence()
+                .filter { it.createdAtMillis >= selectedMonthStart && it.createdAtMillis < selectedMonthEnd }
+                .sumOf { it.amountCents }
+        }
+        val previousMonthsSavingsCents = remember(savingsContribs, selectedMonthStart) {
+            savingsContribs
+                .asSequence()
+                .filter { it.createdAtMillis < selectedMonthStart }
+                .sumOf { it.amountCents }
         }
 
         NavHost(
@@ -322,6 +343,7 @@ fun BudgetSenseRoot(
                     selectedTab = selectedTab,
                     onTabSelected = { selectedTab = it },
                     monthKey = monthKey,
+                    onMonthKeyChanged = { monthKey = it },
                     profile = profile,
                     monthTotals = monthTotals,
                     monthTxs = monthTxs,
@@ -329,6 +351,8 @@ fun BudgetSenseRoot(
                     budgetPlan = budgetPlan,
                     budgetCaps = budgetCaps,
                     savingsSnapshot = savingsSnapshot,
+                    selectedMonthSavingsCents = selectedMonthSavingsCents,
+                    previousMonthsSavingsCents = previousMonthsSavingsCents,
                     hasSavingsGoals = savingsGoals.isNotEmpty(),
                     onOpenAbout = { navController.navigate("about") },
                     onOpenFaq = { navController.navigate("faq") },
@@ -385,13 +409,14 @@ fun BudgetSenseRoot(
                 } else {
                     val profile by profileRepository.observe(user.uid)
                         .collectAsStateWithLifecycle(initialValue = null)
-                    val goals by savingsRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+                    val goals by savingsRepository.observeAll(user.uid).collectAsStateWithLifecycle(initialValue = emptyList())
                     val p = profile
                     if (p == null) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                     } else {
                         SavingsScreen(
                             profile = p,
+                            userId = user.uid,
                             repository = savingsRepository,
                             goals = goals,
                             onBack = { navController.popBackStack() },
@@ -470,6 +495,7 @@ private fun MainShell(
     selectedTab: String,
     onTabSelected: (String) -> Unit,
     monthKey: String,
+    onMonthKeyChanged: (String) -> Unit,
     profile: UserProfileEntity?,
     monthTotals: Pair<Long, Long>,
     monthTxs: List<TransactionEntity>,
@@ -477,6 +503,8 @@ private fun MainShell(
     budgetPlan: BudgetPlanEntity?,
     budgetCaps: List<BudgetCategoryCapEntity>,
     savingsSnapshot: SavingsMonthSnapshot,
+    selectedMonthSavingsCents: Long,
+    previousMonthsSavingsCents: Long,
     hasSavingsGoals: Boolean,
     onOpenAbout: () -> Unit,
     onOpenFaq: () -> Unit,
@@ -575,7 +603,11 @@ private fun MainShell(
                     monthExpense = monthTotals.second,
                     monthBudgetCap = budgetPlan?.totalBudgetCents,
                     monthTransactions = monthTxs,
+                    monthKey = monthKey,
+                    onMonthKeyChanged = onMonthKeyChanged,
                     savingsSnapshot = savingsSnapshot,
+                    selectedMonthSavingsCents = selectedMonthSavingsCents,
+                    previousMonthsSavingsCents = previousMonthsSavingsCents,
                     hasSavingsGoals = hasSavingsGoals,
                     onOpenTransactions = { onTabSelected("transactions") },
                     onOpenBudget = { onTabSelected("budget") },
@@ -589,6 +621,8 @@ private fun MainShell(
                     transactions = allTxs,
                     monthBudgetCents = budgetPlan?.totalBudgetCents,
                     categoryCaps = categoryCapsMap,
+                    monthKey = monthKey,
+                    onMonthKeyChanged = onMonthKeyChanged,
                     onAdd = { navController.navigate("transaction_edit/new") },
                     onOpen = { id -> navController.navigate("transaction_edit/$id") },
                     onDelete = { tx ->

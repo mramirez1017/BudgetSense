@@ -2,15 +2,32 @@ package com.amdevstudio.budgetsense.domain
 
 import java.time.Instant
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 
 object Time {
     private val zone: ZoneId get() = ZoneId.systemDefault()
+    private val monthKeyFmt = DateTimeFormatter.ofPattern("yyyy-MM")
+    private val monthLabelFmt = DateTimeFormatter.ofPattern("MMM yyyy")
 
     fun monthKey(instant: Instant = Instant.now()): String =
-        DateTimeFormatter.ofPattern("yyyy-MM").withZone(zone).format(instant)
+        monthKeyFmt.withZone(zone).format(instant)
+
+    fun formatMonthKey(monthKey: String): String {
+        val parts = monthKey.split("-")
+        val y = parts[0].toInt()
+        val m = parts[1].toInt()
+        return YearMonth.of(y, m).format(monthLabelFmt)
+    }
+
+    fun previousMonthKey(monthKey: String): String {
+        val parts = monthKey.split("-")
+        val y = parts[0].toInt()
+        val m = parts[1].toInt()
+        return YearMonth.of(y, m).minusMonths(1).format(monthKeyFmt)
+    }
 
     fun startOfMonthMillis(monthKey: String): Long {
         val parts = monthKey.split("-")

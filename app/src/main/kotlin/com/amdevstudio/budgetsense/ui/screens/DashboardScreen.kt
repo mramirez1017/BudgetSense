@@ -47,6 +47,8 @@ import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.MoneyFormat
 import com.amdevstudio.budgetsense.domain.SavingsMonthSnapshot
+import com.amdevstudio.budgetsense.domain.Time
+import com.amdevstudio.budgetsense.ui.components.BudgetSenseMonthField
 import com.amdevstudio.budgetsense.ui.components.DataFigure
 import com.amdevstudio.budgetsense.ui.components.MonthExpensePieChart
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
@@ -60,7 +62,11 @@ fun DashboardScreen(
     monthExpense: Long,
     monthBudgetCap: Long?,
     monthTransactions: List<TransactionEntity>,
+    monthKey: String,
+    onMonthKeyChanged: (String) -> Unit,
     savingsSnapshot: SavingsMonthSnapshot,
+    selectedMonthSavingsCents: Long,
+    previousMonthsSavingsCents: Long,
     hasSavingsGoals: Boolean,
     onOpenTransactions: () -> Unit,
     onOpenBudget: () -> Unit,
@@ -68,6 +74,10 @@ fun DashboardScreen(
     onOpenSavings: () -> Unit,
     onOpenInsights: () -> Unit,
 ) {
+    val isCurrentMonth = remember(monthKey) { monthKey == Time.monthKey() }
+    val monthLabel = remember(monthKey, isCurrentMonth) {
+        if (isCurrentMonth) "This month" else Time.formatMonthKey(monthKey)
+    }
     val hide = profile.hideBalance
     val currency = profile.currencyCode
     val balance = monthIncome - monthExpense
@@ -125,6 +135,13 @@ fun DashboardScreen(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
+                Spacer(Modifier.height(10.dp))
+                BudgetSenseMonthField(
+                    label = "Month",
+                    monthKey = monthKey,
+                    onMonthSelected = onMonthKeyChanged,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             ScreenHelpIconButton(title = "Home") {
                 Text(
@@ -175,7 +192,7 @@ fun DashboardScreen(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 OverlineCaps(
-                    "This month",
+                    monthLabel,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.78f),
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -221,7 +238,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    "This month",
+                    monthLabel,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier
@@ -306,7 +323,7 @@ fun DashboardScreen(
                         tint = Color.White.copy(alpha = 0.88f),
                     )
                     OverlineCaps(
-                        "This month · savings",
+                        "$monthLabel · savings",
                         color = Color.White.copy(alpha = 0.78f),
                     )
                 }
@@ -317,50 +334,38 @@ fun DashboardScreen(
                         color = Color.White.copy(alpha = 0.88f),
                     )
                 } else {
-                    val monthlyTarget = savingsSnapshot.suggestedMonthlyTargetCents
                     val combinedTarget = savingsSnapshot.combinedTargetCents
-                    val savedMonth = savingsSnapshot.savedThisMonthCents
                     val totalSaved = savingsSnapshot.totalSavedCents
 
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    val statsRow = Modifier.fillMaxWidth()
+                    val statsGap = 16.dp
+                    Row(statsRow, horizontalArrangement = Arrangement.spacedBy(statsGap)) {
                         SavingsHomeStat(
-                            "Saved this month",
-                            MoneyFormat.format(currency, savedMonth, hide),
+                            label = "$monthLabel savings",
+                            value = MoneyFormat.format(currency, selectedMonthSavingsCents, hide),
                         )
                         SavingsHomeStat(
-                            "Target this month",
-                            if (monthlyTarget != null && monthlyTarget > 0L) {
-                                MoneyFormat.format(currency, monthlyTarget, hide)
-                            } else {
-                                "—"
-                            },
+                            label = "Previous months savings",
+                            value = MoneyFormat.format(currency, previousMonthsSavingsCents, hide),
                         )
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(statsRow, horizontalArrangement = Arrangement.spacedBy(statsGap)) {
                         SavingsHomeStat(
-                            "Total saved",
-                            MoneyFormat.format(currency, totalSaved, hide),
+                            label = "Total saved",
+                            value = MoneyFormat.format(currency, totalSaved, hide),
                         )
                         SavingsHomeStat(
-                            "Combined target",
-                            MoneyFormat.format(currency, combinedTarget, hide),
+                            label = "Combined target",
+                            value = MoneyFormat.format(currency, combinedTarget, hide),
                         )
                     }
 
-                    val (barProgress, percentCaption) = when {
-                        monthlyTarget != null && monthlyTarget > 0L -> {
-                            val pct = (savedMonth * 100.0 / monthlyTarget.toDouble()).roundToInt().coerceAtLeast(0)
-                            val bar = (savedMonth.toFloat() / monthlyTarget.toFloat()).coerceIn(0f, 1f)
-                            bar to "$pct% of this month's target"
-                        }
-                        combinedTarget > 0L -> {
-                            val pct = ((totalSaved * 100L) / combinedTarget).toInt().coerceIn(0, 999)
-                            val bar = (totalSaved.toFloat() / combinedTarget.toFloat()).coerceIn(0f, 1f)
-                            bar to "$pct% toward combined goal target"
-                        }
-                        else -> {
-                            0f to "Add savings goals with targets to see progress"
-                        }
+                    val (barProgress, percentCaption) = if (combinedTarget > 0L) {
+                        val pct = ((totalSaved * 100L) / combinedTarget).toInt().coerceIn(0, 999)
+                        val bar = (totalSaved.toFloat() / combinedTarget.toFloat()).coerceIn(0f, 1f)
+                        bar to "$pct% toward combined goal target"
+                    } else {
+                        0f to "Add savings goals with targets to see progress"
                     }
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -378,14 +383,6 @@ fun DashboardScreen(
                         color = Color.White,
                         trackColor = Color.White.copy(alpha = 0.28f),
                     )
-                    if (monthlyTarget == null || monthlyTarget <= 0L) {
-                        Text(
-                            "Tip: add deadlines to your goals to get a suggested monthly savings target.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.72f),
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
                 }
                 TextButton(onClick = onOpenSavings) {
                     Text("Open savings", color = Color.White)
@@ -590,14 +587,23 @@ private fun RowScope.SavingsHomeStat(
     label: String,
     value: String,
 ) {
-    Column(Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
+    Column(
+        modifier = Modifier.weight(1f),
+        horizontalAlignment = Alignment.Start,
+    ) {
         Text(
             label,
             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.4.sp),
             color = Color.White.copy(alpha = 0.82f),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.height(6.dp))
-        DataFigure(text = value, color = Color.White, compact = true)
+        DataFigure(
+            text = value,
+            color = Color.White,
+            compact = true,
+        )
     }
 }
 

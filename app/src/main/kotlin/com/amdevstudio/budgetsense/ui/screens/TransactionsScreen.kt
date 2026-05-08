@@ -67,6 +67,8 @@ import com.amdevstudio.budgetsense.ui.components.SpendingCategoryCard
 import com.amdevstudio.budgetsense.ui.components.futuristicFrame
 
 private val MoneyFabReserveBottom = 120.dp
+private val IncomeGreen = Color(0xFF43A047)
+private val ExpenseRed = Color(0xFFE53935)
 
 private enum class MoneyView { Overview, All }
 
@@ -77,6 +79,8 @@ fun TransactionsScreen(
     transactions: List<TransactionEntity>,
     monthBudgetCents: Long?,
     categoryCaps: Map<String, Long>,
+    monthKey: String,
+    onMonthKeyChanged: (String) -> Unit,
     onAdd: () -> Unit,
     onOpen: (String) -> Unit,
     onDelete: (TransactionEntity) -> Unit,
@@ -85,9 +89,11 @@ fun TransactionsScreen(
     var filter by remember { mutableStateOf<TransactionType?>(null) }
     var expandedCategories by remember { mutableStateOf(setOf<String>()) }
 
-    val monthKey = remember { Time.monthKey() }
     val start = remember(monthKey) { Time.startOfMonthMillis(monthKey) }
     val end = remember(monthKey) { Time.endOfMonthMillis(monthKey) }
+    val monthLabel = remember(monthKey) {
+        if (monthKey == Time.monthKey()) "This month" else Time.formatMonthKey(monthKey)
+    }
 
     val monthIncome = remember(transactions, start, end) {
         transactions
@@ -146,7 +152,7 @@ fun TransactionsScreen(
                         Column {
                             OverlineCaps("Money", color = MaterialTheme.colorScheme.primary)
                             Text(
-                                "This month",
+                                monthLabel,
                                 style = MaterialTheme.typography.titleLarge,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -156,7 +162,7 @@ fun TransactionsScreen(
                     actions = {
                         ScreenHelpIconButton(title = "Money tab") {
                             Text(
-                                "Overview shows this month’s income and spending, and groups expenses by category using the limits you set in Budget. Expand a category to see each purchase.",
+                                "Overview shows the month you selected on Home, and groups expenses by category using the limits you set in Budget. Expand a category to see each purchase.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -235,7 +241,7 @@ fun TransactionsScreen(
                                     )
                                     AdaptiveMonospaceValue(
                                         text = MoneyFormat.format(profile.currencyCode, monthIncome, profile.hideBalance),
-                                        color = Color(0xFF43A047),
+                                        color = IncomeGreen,
                                         compact = true,
                                         textAlign = TextAlign.End,
                                         modifier = Modifier.weight(1f),
@@ -261,7 +267,7 @@ fun TransactionsScreen(
                                     ) {
                                         AdaptiveMonospaceValue(
                                             text = MoneyFormat.format(profile.currencyCode, monthExpenseTotal, profile.hideBalance),
-                                            color = Color(0xFFE53935),
+                                            color = ExpenseRed,
                                             compact = true,
                                             textAlign = TextAlign.Start,
                                             modifier = Modifier.weight(1f),
@@ -374,11 +380,12 @@ fun TransactionsScreen(
                         contentPadding = PaddingValues(bottom = MoneyFabReserveBottom),
                     ) {
                         items(list, key = { it.id }) { tx ->
+                            val accent = if (tx.type == TransactionType.INCOME) IncomeGreen else ExpenseRed
                             Card(
                                 onClick = { onOpen(tx.id) },
                                 modifier = Modifier.futuristicFrame(
                                     MaterialTheme.shapes.large,
-                                    MaterialTheme.colorScheme.primary,
+                                    accent,
                                     0.2f,
                                 ),
                                 shape = MaterialTheme.shapes.large,
@@ -396,7 +403,7 @@ fun TransactionsScreen(
                                             .width(4.dp)
                                             .height(64.dp)
                                             .background(
-                                                MaterialTheme.colorScheme.primary,
+                                                accent,
                                                 RoundedCornerShape(
                                                     topStart = 4.dp,
                                                     bottomStart = 4.dp,
@@ -430,8 +437,8 @@ fun TransactionsScreen(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 textAlign = TextAlign.Start,
-                                                maxLines = 2,
-                                                minScale = 0.8f,
+                                                maxLines = 4,
+                                                minScale = 0.9f,
                                             )
                                             AdaptivePlainText(
                                                 text = tx.type.name.uppercase(),
@@ -444,25 +451,23 @@ fun TransactionsScreen(
                                         }
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.End,
-                                            modifier = Modifier.weight(0.44f),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.weight(0.6f),
                                         ) {
                                             DataFigure(
-                                                modifier = Modifier.weight(1f),
                                                 text = (if (tx.type == TransactionType.INCOME) "+" else "−") +
                                                     MoneyFormat.format(
                                                         profile.currencyCode,
                                                         tx.amountCents,
                                                         profile.hideBalance,
                                                     ),
-                                                compact = true,
-                                                color = if (tx.type == TransactionType.INCOME) {
-                                                    MaterialTheme.colorScheme.primary
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurface
-                                                },
+                                                compact = false,
+                                                color = accent,
+                                                modifier = Modifier.weight(1f),
                                             )
-                                            IconButton(onClick = { onDelete(tx) }) {
+                                            IconButton(
+                                                onClick = { onDelete(tx) },
+                                            ) {
                                                 Icon(Icons.Default.Delete, contentDescription = "Delete")
                                             }
                                         }

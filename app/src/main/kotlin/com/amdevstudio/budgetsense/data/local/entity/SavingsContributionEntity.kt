@@ -19,6 +19,7 @@ import androidx.room.PrimaryKey
 )
 data class SavingsContributionEntity(
     @PrimaryKey val id: String,
+    val userId: String,
     val goalId: String,
     val amountCents: Long,
     val createdAtMillis: Long,

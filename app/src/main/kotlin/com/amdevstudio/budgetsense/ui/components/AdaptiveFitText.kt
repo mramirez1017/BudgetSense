@@ -63,7 +63,7 @@ fun AdaptiveMonospaceValue(
     minScale: Float = 0.45f,
 ) {
     val base = if (compact) {
-        MaterialTheme.typography.titleSmall.copy(
+        MaterialTheme.typography.titleMedium.copy(
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.1.sp,

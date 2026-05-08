@@ -13,11 +13,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SavingsGoalDao {
-    @Query("SELECT * FROM savings_goals ORDER BY deadlineMillis ASC")
-    fun observeAll(): Flow<List<SavingsGoalEntity>>
+    @Query("SELECT * FROM savings_goals WHERE userId = :userId ORDER BY deadlineMillis ASC")
+    fun observeAll(userId: String): Flow<List<SavingsGoalEntity>>
 
-    @Query("SELECT * FROM savings_goals WHERE id = :id LIMIT 1")
-    suspend fun getGoalById(id: String): SavingsGoalEntity?
+    @Query("SELECT * FROM savings_goals WHERE userId = :userId AND id = :id LIMIT 1")
+    suspend fun getGoalById(userId: String, id: String): SavingsGoalEntity?
+
+    @Query("SELECT * FROM savings_goals WHERE userId = :userId")
+    suspend fun getAllGoalsForUser(userId: String): List<SavingsGoalEntity>
 
     /**
      * Insert a brand-new goal only.
@@ -33,8 +36,11 @@ interface SavingsGoalDao {
     @Delete
     suspend fun delete(goal: SavingsGoalEntity)
 
-    @Query("SELECT * FROM savings_contributions ORDER BY createdAtMillis DESC")
-    fun observeAllContributions(): Flow<List<SavingsContributionEntity>>
+    @Query("SELECT * FROM savings_contributions WHERE userId = :userId ORDER BY createdAtMillis DESC")
+    fun observeAllContributions(userId: String): Flow<List<SavingsContributionEntity>>
+
+    @Query("SELECT * FROM savings_contributions WHERE userId = :userId")
+    suspend fun getAllContributionsForUser(userId: String): List<SavingsContributionEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertContribution(entity: SavingsContributionEntity)

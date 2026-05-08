@@ -40,6 +40,9 @@ class MainActivity : ComponentActivity() {
             val txSyncPrefs = remember {
                 appContext.getSharedPreferences("budgetsense_tx_sync", Context.MODE_PRIVATE)
             }
+            val savingsSyncPrefs = remember {
+                appContext.getSharedPreferences("budgetsense_savings_sync", Context.MODE_PRIVATE)
+            }
             val profileRepository = remember {
                 ProfileRepository(
                     database.userProfileDao(),
@@ -55,7 +58,13 @@ class MainActivity : ComponentActivity() {
             }
             val budgetRepository = remember { BudgetRepository(database.budgetDao()) }
             val billRepository = remember { BillRepository(database.billDao()) }
-            val savingsRepository = remember { SavingsRepository(database.savingsGoalDao()) }
+            val savingsRepository = remember {
+                SavingsRepository(
+                    database.savingsGoalDao(),
+                    isNetworkLikelyAvailable = hasNetwork,
+                    syncPrefs = savingsSyncPrefs,
+                )
+            }
 
             BudgetSenseTheme {
                 BudgetSenseRoot(

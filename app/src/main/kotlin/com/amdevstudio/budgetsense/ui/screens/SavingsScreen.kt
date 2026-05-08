@@ -78,11 +78,12 @@ import java.util.UUID
 @Composable
 fun SavingsScreen(
     profile: UserProfileEntity,
+    userId: String,
     repository: SavingsRepository,
     goals: List<SavingsGoalEntity>,
     onBack: () -> Unit,
 ) {
-    val contributions by repository.observeAllContributions().collectAsStateWithLifecycle(initialValue = emptyList())
+    val contributions by repository.observeAllContributions(userId).collectAsStateWithLifecycle(initialValue = emptyList())
     val byGoal = contributions.groupBy { it.goalId }
 
     val scope = rememberCoroutineScope()
@@ -295,7 +296,7 @@ fun SavingsScreen(
                                             onRemove = {
                                                 scope.launch {
                                                     try {
-                                                        repository.removeContribution(goal, c)
+                                                        repository.removeContribution(userId, goal, c)
                                                     } catch (_: Exception) {
                                                         return@launch
                                                     }
@@ -310,6 +311,7 @@ fun SavingsScreen(
                         GoalAddMoneyRow(
                             goal = goal,
                             profile = profile,
+                            userId = userId,
                             repository = repository,
                             scope = scope,
                             dismissKeyboard = dismissKeyboard,
@@ -348,6 +350,7 @@ fun SavingsScreen(
                         dismissKeyboard()
                         val entity = SavingsGoalEntity(
                             id = UUID.randomUUID().toString(),
+                            userId = userId,
                             name = name.ifBlank { "Goal" },
                             targetCents = cents,
                             savedCents = 0L,
@@ -355,7 +358,7 @@ fun SavingsScreen(
                         )
                         scope.launch {
                             try {
-                                repository.upsert(entity)
+                                repository.upsert(userId, entity)
                             } catch (_: Exception) {
                                 return@launch
                             }
@@ -432,6 +435,7 @@ fun SavingsScreen(
                         scope.launch {
                             try {
                                 repository.upsert(
+                                    userId,
                                     liveGoal.copy(
                                         name = editName.ifBlank { liveGoal.name },
                                         targetCents = cents,
@@ -465,7 +469,7 @@ fun SavingsScreen(
                     onClick = {
                         scope.launch {
                             try {
-                                repository.delete(g)
+                                repository.delete(userId, g)
                             } catch (_: Exception) {
                                 return@launch
                             }
@@ -523,6 +527,7 @@ private fun ContributionRow(
 private fun GoalAddMoneyRow(
     goal: SavingsGoalEntity,
     profile: UserProfileEntity,
+    userId: String,
     repository: SavingsRepository,
     scope: kotlinx.coroutines.CoroutineScope,
     dismissKeyboard: () -> Unit,
@@ -543,7 +548,7 @@ private fun GoalAddMoneyRow(
                 dismissKeyboard()
                 scope.launch {
                     try {
-                        repository.addContribution(goal, cents)
+                        repository.addContribution(userId, goal, cents)
                     } catch (_: Exception) {
                         return@launch
                     }
