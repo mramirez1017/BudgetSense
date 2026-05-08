@@ -94,7 +94,12 @@ fun InsightsScreen(
                 actions = {
                     ScreenHelpIconButton(title = "Insights") {
                         Text(
-                            "Insights compares this week and last week’s spending and looks at your category limits from the Budget tab. Add more transactions so the tips reflect your real habits.",
+                            "Insights compares this week and last week’s spending and uses your category limits from the Budget tab. Add more transactions so the tips reflect your real habits.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "Tip: month selection is controlled from Home; Insights focuses on week-to-week trends.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

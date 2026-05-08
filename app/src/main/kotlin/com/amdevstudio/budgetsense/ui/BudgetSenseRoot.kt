@@ -1,5 +1,9 @@
 package com.amdevstudio.budgetsense.ui
 
+import android.content.SharedPreferences
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -8,6 +12,8 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,8 +37,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,8 +50,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -73,6 +85,7 @@ import com.amdevstudio.budgetsense.ui.screens.SettingsScreen
 import com.amdevstudio.budgetsense.ui.screens.TransactionEditScreen
 import com.amdevstudio.budgetsense.ui.screens.TransactionsScreen
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
+import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.util.rememberNetworkAvailable
 import com.amdevstudio.budgetsense.ui.util.userFacingMessage
 import com.amdevstudio.budgetsense.data.local.entity.BudgetCategoryCapEntity
@@ -87,6 +100,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.fragment.app.FragmentActivity
 
 private data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -105,10 +119,13 @@ fun BudgetSenseRoot(
     budgetRepository: BudgetRepository,
     billRepository: BillRepository,
     savingsRepository: SavingsRepository,
+    appPrefs: SharedPreferences,
 ) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
 
     val authUser by authRepository.authState()
         .collectAsStateWithLifecycle(initialValue = FirebaseAuth.getInstance().currentUser)
@@ -122,6 +139,7 @@ fun BudgetSenseRoot(
             try {
                 transactionRepository.syncWithCloud(uid)
                 savingsRepository.syncWithCloud(uid)
+                billRepository.syncWithCloud(uid)
             } catch (_: Exception) {
                 // Offline or Firestore errors; local Room data still works
             }
@@ -140,6 +158,43 @@ fun BudgetSenseRoot(
             )
         },
     ) { padding ->
+        // App Lock state (stored in SharedPreferences)
+        val appLockKey = "app_lock_enabled"
+        var appLockEnabled by remember {
+            mutableStateOf(appPrefs.getBoolean(appLockKey, false))
+        }
+        DisposableEffect(appPrefs) {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { p, key ->
+                if (key == appLockKey) appLockEnabled = p.getBoolean(appLockKey, false)
+            }
+            appPrefs.registerOnSharedPreferenceChangeListener(listener)
+            onDispose { appPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+        }
+
+        var unlockedThisSession by rememberSaveable { mutableStateOf(false) }
+
+        // Re-lock whenever app returns to foreground.
+        val lifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner, appLockEnabled) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (!appLockEnabled) return@LifecycleEventObserver
+                when (event) {
+                    Lifecycle.Event.ON_START -> unlockedThisSession = false
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+
+        if (appLockEnabled && !unlockedThisSession) {
+            AppLockScreen(
+                activity = activity,
+                onUnlocked = { unlockedThisSession = true },
+            )
+            return@Scaffold
+        }
+
         // Collect above NavHost so flows stay active on transaction_edit / bills / etc.
         // (MainShell is not composed when those screens are shown; in-shell collection missed Room updates.)
         var monthKey by rememberSaveable { mutableStateOf(Time.monthKey()) }
@@ -354,6 +409,7 @@ fun BudgetSenseRoot(
                     selectedMonthSavingsCents = selectedMonthSavingsCents,
                     previousMonthsSavingsCents = previousMonthsSavingsCents,
                     hasSavingsGoals = savingsGoals.isNotEmpty(),
+                    appPrefs = appPrefs,
                     onOpenAbout = { navController.navigate("about") },
                     onOpenFaq = { navController.navigate("faq") },
                     onOpenCurrencyConverter = { navController.navigate("currency_converter") },
@@ -391,10 +447,11 @@ fun BudgetSenseRoot(
                         navController.navigateToLoginReplacingBackStack()
                     }
                 } else {
-                    val bills by billRepository.observeAll().collectAsStateWithLifecycle(initialValue = emptyList())
+                    val bills by billRepository.observeAll(user.uid).collectAsStateWithLifecycle(initialValue = emptyList())
                     BillsScreen(
                         repository = billRepository,
                         bills = bills,
+                        userId = user.uid,
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -484,6 +541,84 @@ fun BudgetSenseRoot(
 }
 
 @Composable
+private fun AppLockScreen(
+    activity: FragmentActivity?,
+    onUnlocked: () -> Unit,
+) {
+    val context = LocalContext.current
+    var error by remember { mutableStateOf<String?>(null) }
+
+    fun launchPrompt() {
+        val a = activity ?: run {
+            error = "App lock is unavailable on this screen."
+            return
+        }
+        val authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        val mgr = BiometricManager.from(context)
+        val ok = mgr.canAuthenticate(authenticators)
+        if (ok != BiometricManager.BIOMETRIC_SUCCESS) {
+            error = "No lock method available. Set up a screen lock (PIN/Pattern/Password) first."
+            return
+        }
+
+        val executor = ContextCompat.getMainExecutor(context)
+        val prompt = BiometricPrompt(
+            a,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    error = null
+                    onUnlocked()
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    error = errString.toString()
+                }
+
+                override fun onAuthenticationFailed() {
+                    error = "Not recognized. Try again."
+                }
+            },
+        )
+
+        val info = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Unlock BudgetSense")
+            .setSubtitle("Use biometrics or your device PIN/pattern/password")
+            .setAllowedAuthenticators(authenticators)
+            .build()
+
+        prompt.authenticate(info)
+    }
+
+    LaunchedEffect(Unit) {
+        launchPrompt()
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(24.dp),
+        ) {
+            OverlineCaps("Locked", color = MaterialTheme.colorScheme.primary)
+            Text("BudgetSense is locked", style = MaterialTheme.typography.headlineSmall)
+            if (error != null) {
+                Text(
+                    error!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = { launchPrompt() }) { Text("Unlock") }
+        }
+    }
+}
+
+@Composable
 private fun MainShell(
     navController: androidx.navigation.NavHostController,
     authUser: com.google.firebase.auth.FirebaseUser?,
@@ -506,6 +641,7 @@ private fun MainShell(
     selectedMonthSavingsCents: Long,
     previousMonthsSavingsCents: Long,
     hasSavingsGoals: Boolean,
+    appPrefs: SharedPreferences,
     onOpenAbout: () -> Unit,
     onOpenFaq: () -> Unit,
     onOpenCurrencyConverter: () -> Unit,
@@ -646,6 +782,7 @@ private fun MainShell(
                     profileRepository = profileRepository,
                     authRepository = authRepository,
                     transactionRepository = transactionRepository,
+                    appPrefs = appPrefs,
                     onOpenAbout = onOpenAbout,
                     onOpenFaq = onOpenFaq,
                     onOpenCurrencyConverter = onOpenCurrencyConverter,

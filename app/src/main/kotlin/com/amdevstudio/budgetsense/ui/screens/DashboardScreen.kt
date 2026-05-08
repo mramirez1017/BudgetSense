@@ -145,14 +145,20 @@ fun DashboardScreen(
             }
             ScreenHelpIconButton(title = "Home") {
                 Text(
-                    "This month’s snapshot — scroll sideways on the tiles below.",
+                    "Pick a month to review past spending. Home, Money, and Budget will update to the same month.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text("• Money — add income and expenses as they happen.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("• Budget — choose how much you want to spend this month.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("• Bills & savings — optional shortcuts from Home.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("• Insights — short tips built from your own numbers.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Savings shows the selected month’s deposits and also your accumulated deposits from earlier months.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Scroll sideways on Top expenses. Use Shortcuts to jump to Money, Budget, Bills, Savings, or Insights.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     "Data is kept on your phone first (works offline). When you’re online, it syncs to your account so you can continue on another device.",
                     style = MaterialTheme.typography.bodySmall,

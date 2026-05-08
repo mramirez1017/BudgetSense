@@ -162,12 +162,12 @@ fun TransactionsScreen(
                     actions = {
                         ScreenHelpIconButton(title = "Money tab") {
                             Text(
-                                "Overview shows the month you selected on Home, and groups expenses by category using the limits you set in Budget. Expand a category to see each purchase.",
+                                "Money uses the month you selected on Home. Overview groups spending by category using the limits you set in Budget. Expand a category to see each purchase.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                "All transactions lists every entry for the month. Use the chips to filter by income or expense. Tap + to add a new entry; you can drag the + button if it covers a row.",
+                                "All transactions lists every entry for the month. Use the chips to filter by income or expense. Tap + to add a new entry.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
