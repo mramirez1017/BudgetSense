@@ -73,8 +73,8 @@ import com.amdevstudio.budgetsense.domain.MoneyFormat
 import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseOptionalDateField
 import com.amdevstudio.budgetsense.ui.components.GlassCard
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.appListContentPadding
+import com.amdevstudio.budgetsense.ui.util.fabMaxDragDownPx
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -131,6 +131,7 @@ fun SavingsScreen(
         val padV = with(density) { 24.dp.toPx() }
         val maxDragLeft = -(maxW - fabPx - padH * 2).coerceAtLeast(0f)
         val maxDragUp = -(maxH - fabPx - padV * 2).coerceAtLeast(0f)
+        val maxDragDown = fabMaxDragDownPx(density)
 
         Scaffold(
             containerColor = Color.Transparent,
@@ -153,20 +154,6 @@ fun SavingsScreen(
                                 )
                             }
                         },
-                        actions = {
-                            ScreenHelpIconButton(title = "Savings") {
-                                Text(
-                                    "Create goals with a target amount. Add money as deposits and track progress.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    "Expand a goal to see the full deposit history, edit details, or delete it.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
                     )
                 }
             },
@@ -177,11 +164,11 @@ fun SavingsScreen(
                         .navigationBarsPadding()
                         .padding(end = 16.dp, bottom = 24.dp)
                         .offset { IntOffset(fabDragX.roundToInt(), fabDragY.roundToInt()) }
-                        .pointerInput(maxDragLeft, maxDragUp, fabPx) {
+                        .pointerInput(maxDragLeft, maxDragUp, maxDragDown, fabPx) {
                             detectDragGestures { change, dragAmount ->
                                 change.consume()
                                 fabDragX = (fabDragX + dragAmount.x).coerceIn(maxDragLeft, 0f)
-                                fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, 0f)
+                                fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, maxDragDown)
                             }
                         },
                 ) {
@@ -196,25 +183,7 @@ fun SavingsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (!showTopBar) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Savings goals", style = MaterialTheme.typography.headlineSmall)
-                        ScreenHelpIconButton(title = "Savings") {
-                            Text(
-                                "Create goals with a target amount. Add money as deposits and track progress.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "Expand a goal to see the full deposit history, edit details, or delete it.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    Text("Savings goals", style = MaterialTheme.typography.headlineSmall)
                 }
 
                 LazyColumn(

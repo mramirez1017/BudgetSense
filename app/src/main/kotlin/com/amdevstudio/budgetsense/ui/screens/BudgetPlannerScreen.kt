@@ -26,7 +26,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,7 +36,6 @@ import com.amdevstudio.budgetsense.domain.Categories
 import com.amdevstudio.budgetsense.domain.MoneyFormat
 import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.SectionHeader
 import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
@@ -101,28 +99,10 @@ fun BudgetPlannerScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(Modifier.weight(1f)) {
-                OverlineCaps("Budget", color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(4.dp))
-                Text("Plan for $monthKey", style = MaterialTheme.typography.headlineSmall)
-            }
-            ScreenHelpIconButton(title = "Budget planner") {
-                Text(
-                    "Enter how much you intend to spend overall for the selected month (monthly budget total). Daily and weekly limits are optional reminders to pace spending.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "Per-category limits are optional. Example: cap “Food” — Money uses those caps to show progress by category.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(Modifier.fillMaxWidth()) {
+            OverlineCaps("Budget", color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(4.dp))
+            Text("Plan for $monthKey", style = MaterialTheme.typography.headlineSmall)
         }
         Spacer(Modifier.height(12.dp))
 

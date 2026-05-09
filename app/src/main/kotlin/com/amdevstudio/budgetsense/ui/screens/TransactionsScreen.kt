@@ -63,12 +63,13 @@ import com.amdevstudio.budgetsense.ui.components.AdaptivePlainText
 import com.amdevstudio.budgetsense.ui.components.DataFigure
 import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.SectionHeader
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.components.SpendingCategoryCard
 import com.amdevstudio.budgetsense.ui.components.futuristicFrame
+import com.amdevstudio.budgetsense.ui.util.fabMaxDragDownPx
 
-private val MoneyFabReserveBottom = 120.dp
+// Match EdgeToEdge “pill” reserve; FAB sits just above nav so list bottom padding can be tighter.
+private val MoneyFabReserveBottom = 96.dp
 private val IncomeGreen = Color(0xFF43A047)
 private val ExpenseRed = Color(0xFFE53935)
 
@@ -136,7 +137,6 @@ fun TransactionsScreen(
 
     val density = LocalDensity.current
     var fabDragX by remember { mutableFloatStateOf(0f) }
-    var fabDragY by remember { mutableFloatStateOf(0f) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val maxW = constraints.maxWidth.toFloat()
@@ -146,6 +146,14 @@ fun TransactionsScreen(
         val padV = with(density) { 24.dp.toPx() }
         val maxDragLeft = -(maxW - fabPx - padH * 2).coerceAtLeast(0f)
         val maxDragUp = -(maxH - fabPx - padV * 2).coerceAtLeast(0f)
+        val maxDragDown = fabMaxDragDownPx(density)
+        /** Same 96.dp as PillBottomBarReserve in EdgeToEdge; keeps default FAB above floating nav */
+        val fabDefaultLiftPx = with(density) { 96.dp.toPx() }
+        val gapAbovePillPx = with(density) { 8.dp.toPx() }
+        val fabDefaultY = remember(maxDragUp, maxDragDown, fabDefaultLiftPx, gapAbovePillPx) {
+            (-(fabDefaultLiftPx + gapAbovePillPx)).coerceIn(maxDragUp, maxDragDown)
+        }
+        var fabDragY by remember(fabDefaultY) { mutableFloatStateOf(fabDefaultY) }
 
         Scaffold(
             topBar = {
@@ -158,20 +166,6 @@ fun TransactionsScreen(
                                 style = MaterialTheme.typography.titleLarge,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    },
-                    actions = {
-                        ScreenHelpIconButton(title = "Money tab") {
-                            Text(
-                                "Money uses the month you selected on Home. Overview groups spending by category using the limits you set in Budget. Expand a category to see each purchase.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "All transactions lists every entry for the month. Use the chips to filter by income or expense. Tap + to add a new entry.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     },
@@ -460,11 +454,11 @@ fun TransactionsScreen(
                 .offset {
                     IntOffset(fabDragX.roundToInt(), fabDragY.roundToInt())
                 }
-                .pointerInput(maxDragLeft, maxDragUp, fabPx) {
+                .pointerInput(maxDragLeft, maxDragUp, maxDragDown, fabPx) {
                     detectDragGestures { change, dragAmount ->
                         change.consume()
                         fabDragX = (fabDragX + dragAmount.x).coerceIn(maxDragLeft, 0f)
-                        fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, 0f)
+                        fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, maxDragDown)
                     }
                 },
             containerColor = MaterialTheme.colorScheme.primary,

@@ -30,7 +30,6 @@ import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.Insights
 import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.NeonCalloutCard
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
 
@@ -103,20 +102,6 @@ fun InsightsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    ScreenHelpIconButton(title = "Insights") {
-                        Text(
-                            "Expense tips compare this week vs last week’s spending and use category limits from Budget. Savings tips use your Savings deposits month by month.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            "Global month selection is on Home — Money and Budget follow it. Insights spending tips follow the calendar month.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
