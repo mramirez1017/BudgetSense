@@ -15,6 +15,10 @@ object Time {
     fun monthKey(instant: Instant = Instant.now()): String =
         monthKeyFmt.withZone(zone).format(instant)
 
+    /** Calendar month key (yyyy-MM) for a contribution or event timestamp. */
+    fun monthKeyFromEpochMillis(millis: Long): String =
+        monthKeyFmt.withZone(zone).format(Instant.ofEpochMilli(millis))
+
     fun formatMonthKey(monthKey: String): String {
         val parts = monthKey.split("-")
         val y = parts[0].toInt()

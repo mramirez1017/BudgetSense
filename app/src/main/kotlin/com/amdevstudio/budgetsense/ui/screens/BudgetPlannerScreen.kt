@@ -35,8 +35,11 @@ import com.amdevstudio.budgetsense.data.local.entity.BudgetPlanEntity
 import com.amdevstudio.budgetsense.data.repository.BudgetRepository
 import com.amdevstudio.budgetsense.domain.Categories
 import com.amdevstudio.budgetsense.domain.MoneyFormat
+import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
+import com.amdevstudio.budgetsense.ui.components.SectionHeader
+import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -94,6 +97,7 @@ fun BudgetPlannerScreen(
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
+            .appBottomBarSafePadding()
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -122,48 +126,53 @@ fun BudgetPlannerScreen(
         }
         Spacer(Modifier.height(12.dp))
 
-        OutlinedTextField(
-            value = total,
-            onValueChange = { total = it },
-            label = { Text("Monthly budget total") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = daily,
-            onValueChange = { daily = it },
-            label = { Text("Daily spending limit") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = weekly,
-            onValueChange = { weekly = it },
-            label = { Text("Weekly spending limit") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                SectionHeader(title = "Monthly plan")
+                OutlinedTextField(
+                    value = total,
+                    onValueChange = { total = it },
+                    label = { Text("Monthly budget total") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = daily,
+                    onValueChange = { daily = it },
+                    label = { Text("Daily spending limit") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = weekly,
+                    onValueChange = { weekly = it },
+                    label = { Text("Weekly spending limit") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-        Button(
-            shape = MaterialTheme.shapes.medium,
-            onClick = {
-                dismissKeyboard()
-                scope.launch {
-                    val totalCents = total.toCentsOrNull()
-                    val dailyCents = daily.toCentsOrNull()
-                    val weeklyCents = weekly.toCentsOrNull()
-                    repository.savePlan(
-                        BudgetPlanEntity(
-                            monthKey = monthKey,
-                            totalBudgetCents = totalCents,
-                            dailyLimitCents = dailyCents,
-                            weeklyLimitCents = weeklyCents,
-                        ),
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Save monthly limits") }
+                Button(
+                    shape = MaterialTheme.shapes.extraLarge,
+                    onClick = {
+                        dismissKeyboard()
+                        scope.launch {
+                            val totalCents = total.toCentsOrNull()
+                            val dailyCents = daily.toCentsOrNull()
+                            val weeklyCents = weekly.toCentsOrNull()
+                            repository.savePlan(
+                                BudgetPlanEntity(
+                                    monthKey = monthKey,
+                                    totalBudgetCents = totalCents,
+                                    dailyLimitCents = dailyCents,
+                                    weeklyLimitCents = weeklyCents,
+                                ),
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Save monthly limits", style = MaterialTheme.typography.titleMedium) }
+            }
+        }
 
         Spacer(Modifier.height(16.dp))
         Text("Per-category limits", style = MaterialTheme.typography.titleMedium)

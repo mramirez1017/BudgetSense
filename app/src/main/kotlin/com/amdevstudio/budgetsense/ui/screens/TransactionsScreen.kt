@@ -61,6 +61,8 @@ import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.AdaptiveMonospaceValue
 import com.amdevstudio.budgetsense.ui.components.AdaptivePlainText
 import com.amdevstudio.budgetsense.ui.components.DataFigure
+import com.amdevstudio.budgetsense.ui.components.GlassCard
+import com.amdevstudio.budgetsense.ui.components.SectionHeader
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.components.SpendingCategoryCard
@@ -187,30 +189,38 @@ fun TransactionsScreen(
                     .padding(padding)
                     .padding(horizontal = 16.dp),
             ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 8.dp),
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp, bottom = 8.dp),
+                cornerRadius = 26.dp,
+                padding = 14.dp,
             ) {
-                val chipColors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                    selectedLabelColor = MaterialTheme.colorScheme.primary,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                FilterChip(
-                    selected = view == MoneyView.Overview,
-                    onClick = { view = MoneyView.Overview },
-                    label = { Text("Overview") },
-                    colors = chipColors,
-                )
-                FilterChip(
-                    selected = view == MoneyView.All,
-                    onClick = { view = MoneyView.All },
-                    label = { Text("All transactions") },
-                    colors = chipColors,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    val chipColors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    FilterChip(
+                        selected = view == MoneyView.Overview,
+                        onClick = { view = MoneyView.Overview },
+                        label = { Text("Overview") },
+                        colors = chipColors,
+                    )
+                    FilterChip(
+                        selected = view == MoneyView.All,
+                        onClick = { view = MoneyView.All },
+                        label = { Text("All") },
+                        colors = chipColors,
+                    )
+                }
             }
 
             when (view) {
@@ -220,76 +230,36 @@ fun TransactionsScreen(
                         contentPadding = PaddingValues(bottom = MoneyFabReserveBottom),
                     ) {
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                                ),
-                            ) {
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        "Income",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        modifier = Modifier.weight(1f),
-                                    )
+                            GlassCard(modifier = Modifier.fillMaxWidth(), accent = IncomeGreen) {
+                                SectionHeader(title = "Income") {
                                     AdaptiveMonospaceValue(
                                         text = MoneyFormat.format(profile.currencyCode, monthIncome, profile.hideBalance),
                                         color = IncomeGreen,
-                                        compact = true,
+                                        compact = false,
                                         textAlign = TextAlign.End,
-                                        modifier = Modifier.weight(1f),
                                     )
                                 }
                             }
                         }
                         item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = MaterialTheme.shapes.large,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                                ),
-                            ) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Text("Spending", style = MaterialTheme.typography.titleMedium)
-                                    Spacer(Modifier.height(4.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.Bottom,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    ) {
+                            GlassCard(modifier = Modifier.fillMaxWidth(), accent = ExpenseRed) {
+                                Column {
+                                    SectionHeader(title = "Spending") {
                                         AdaptiveMonospaceValue(
                                             text = MoneyFormat.format(profile.currencyCode, monthExpenseTotal, profile.hideBalance),
                                             color = ExpenseRed,
-                                            compact = true,
-                                            textAlign = TextAlign.Start,
-                                            modifier = Modifier.weight(1f),
+                                            compact = false,
+                                            textAlign = TextAlign.End,
                                         )
-                                        if (monthBudgetCents != null && monthBudgetCents > 0L) {
-                                            AdaptiveMonospaceValue(
-                                                text = "of ${MoneyFormat.format(profile.currencyCode, monthBudgetCents, profile.hideBalance)}",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                compact = true,
-                                                textAlign = TextAlign.End,
-                                                modifier = Modifier.weight(1f),
-                                                minScale = 0.5f,
-                                            )
-                                        }
                                     }
+                                    Spacer(Modifier.height(6.dp))
                                     AdaptivePlainText(
                                         text = "$expenseCount transaction${if (expenseCount == 1) "" else "s"}",
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodySmall,
                                         textAlign = TextAlign.Start,
                                         maxLines = 2,
-                                        minScale = 0.75f,
+                                        minScale = 0.85f,
                                     )
                                     if (monthBudgetCents != null && monthBudgetCents > 0L) {
                                         Spacer(Modifier.height(10.dp))
@@ -298,9 +268,9 @@ fun TransactionsScreen(
                                             progress = { p.coerceAtMost(1f) },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(5.dp)
+                                                .height(6.dp)
                                                 .clip(RoundedCornerShape(999.dp)),
-                                            color = if (monthExpenseTotal > monthBudgetCents) Color(0xFFE53935) else Color(0xFF26A69A),
+                                            color = if (monthExpenseTotal > monthBudgetCents) ExpenseRed else MaterialTheme.colorScheme.secondary,
                                             trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                                         )
                                     }

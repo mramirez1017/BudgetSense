@@ -1,6 +1,7 @@
 package com.amdevstudio.budgetsense.data.repository
 
 import android.content.SharedPreferences
+import android.util.Log
 import com.amdevstudio.budgetsense.data.local.dao.BillDao
 import com.amdevstudio.budgetsense.data.local.entity.BillReminderEntity
 import com.google.firebase.firestore.DocumentSnapshot
@@ -20,6 +21,14 @@ class BillRepository(
 ) {
     private fun collection(uid: String) =
         firestore.collection("users").document(uid).collection("bill_reminders")
+
+    private fun logFailure(op: String, uid: String, id: String, t: Throwable) {
+        Log.w("BudgetSense/Bills", "$op failed uid=$uid id=$id :: ${t.message}", t)
+    }
+
+    private fun logSuccess(op: String, uid: String, id: String) {
+        Log.d("BudgetSense/Bills", "$op ok uid=$uid id=$id")
+    }
 
     private fun pendingDeleteKey(uid: String) = "pending_bill_del_$uid"
 
@@ -60,6 +69,8 @@ class BillRepository(
         dao.delete(bill)
         if (isNetworkLikelyAvailable()) {
             runCatching { collection(u).document(bill.id).delete().await() }
+                .onSuccess { logSuccess("deleteBill", u, bill.id) }
+                .onFailure { logFailure("deleteBill", u, bill.id, it) }
         } else {
             addPendingDelete(u, bill.id)
         }
@@ -98,8 +109,10 @@ class BillRepository(
     }
 
     private suspend fun pushBill(uid: String, entity: BillReminderEntity) = withContext(Dispatchers.IO) {
-        if (!isNetworkLikelyAvailable()) return@withContext
+        // Firestore can queue writes offline. Avoid gating writes on heuristic network checks.
         runCatching { collection(uid).document(entity.id).set(entity.toFirestoreMap()).await() }
+            .onSuccess { logSuccess("pushBill", uid, entity.id) }
+            .onFailure { logFailure("pushBill", uid, entity.id, it) }
     }
 }
 

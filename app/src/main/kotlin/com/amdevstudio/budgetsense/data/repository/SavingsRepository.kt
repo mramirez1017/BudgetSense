@@ -1,6 +1,7 @@
 package com.amdevstudio.budgetsense.data.repository
 
 import android.content.SharedPreferences
+import android.util.Log
 import com.amdevstudio.budgetsense.data.local.dao.SavingsGoalDao
 import com.amdevstudio.budgetsense.data.local.entity.SavingsContributionEntity
 import com.amdevstudio.budgetsense.data.local.entity.SavingsGoalEntity
@@ -28,6 +29,14 @@ class SavingsRepository(
 
     private fun pendingGoalDeleteKey(uid: String) = "pending_sg_del_$uid"
     private fun pendingContribDeleteKey(uid: String) = "pending_sc_del_$uid"
+
+    private fun logFailure(op: String, uid: String, id: String, t: Throwable) {
+        Log.w("BudgetSense/Savings", "$op failed uid=$uid id=$id :: ${t.message}", t)
+    }
+
+    private fun logSuccess(op: String, uid: String, id: String) {
+        Log.d("BudgetSense/Savings", "$op ok uid=$uid id=$id")
+    }
 
     private fun readPendingDeletes(key: String): MutableSet<String> {
         val p = syncPrefs ?: return mutableSetOf()
@@ -71,6 +80,7 @@ class SavingsRepository(
         dao.delete(goal)
         if (isNetworkLikelyAvailable()) {
             runCatching { goalsCollection(u).document(goal.id).delete().await() }
+                .onFailure { logFailure("deleteGoal", u, goal.id, it) }
         } else {
             addPendingDelete(pendingGoalDeleteKey(u), goal.id)
         }
@@ -102,6 +112,7 @@ class SavingsRepository(
             dao.removeContributionAndUpdateGoal(contribution, updated)
             if (isNetworkLikelyAvailable()) {
                 runCatching { contributionsCollection(u).document(contribution.id).delete().await() }
+                    .onFailure { logFailure("deleteContribution", u, contribution.id, it) }
             } else {
                 addPendingDelete(pendingContribDeleteKey(u), contribution.id)
             }
@@ -159,33 +170,41 @@ class SavingsRepository(
         for (g in dao.getAllGoalsForUser(uid)) {
             if (!isNetworkLikelyAvailable()) break
             runCatching { goalsCollection(uid).document(g.id).set(g.toFirestoreMap()).await() }
+                .onFailure { logFailure("syncPushGoal", uid, g.id, it) }
         }
         for (c in dao.getAllContributionsForUser(uid)) {
             if (!isNetworkLikelyAvailable()) break
             runCatching { contributionsCollection(uid).document(c.id).set(c.toFirestoreMap()).await() }
+                .onFailure { logFailure("syncPushContribution", uid, c.id, it) }
         }
 
         // Apply pending deletes
         for (id in readPendingDeletes(pendingGoalDelKey).toList()) {
             if (!isNetworkLikelyAvailable()) break
             runCatching { goalsCollection(uid).document(id).delete().await() }
+                .onFailure { logFailure("syncDeleteGoal", uid, id, it) }
             removePendingDelete(pendingGoalDelKey, id)
         }
         for (id in readPendingDeletes(pendingContribDelKey).toList()) {
             if (!isNetworkLikelyAvailable()) break
             runCatching { contributionsCollection(uid).document(id).delete().await() }
+                .onFailure { logFailure("syncDeleteContribution", uid, id, it) }
             removePendingDelete(pendingContribDelKey, id)
         }
     }
 
     private suspend fun pushGoal(uid: String, entity: SavingsGoalEntity) = withContext(Dispatchers.IO) {
-        if (!isNetworkLikelyAvailable()) return@withContext
+        // Firestore can queue writes offline. Avoid gating writes on heuristic network checks.
         runCatching { goalsCollection(uid).document(entity.id).set(entity.toFirestoreMap()).await() }
+            .onSuccess { logSuccess("pushGoal", uid, entity.id) }
+            .onFailure { logFailure("pushGoal", uid, entity.id, it) }
     }
 
     private suspend fun pushContribution(uid: String, entity: SavingsContributionEntity) = withContext(Dispatchers.IO) {
-        if (!isNetworkLikelyAvailable()) return@withContext
+        // Firestore can queue writes offline. Avoid gating writes on heuristic network checks.
         runCatching { contributionsCollection(uid).document(entity.id).set(entity.toFirestoreMap()).await() }
+            .onSuccess { logSuccess("pushContribution", uid, entity.id) }
+            .onFailure { logFailure("pushContribution", uid, entity.id, it) }
     }
 }
 

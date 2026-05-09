@@ -35,9 +35,10 @@ import com.amdevstudio.budgetsense.data.repository.ProfileRepository
 import com.amdevstudio.budgetsense.data.repository.TransactionRepository
 import com.amdevstudio.budgetsense.domain.SupportedCurrencies
 import com.amdevstudio.budgetsense.domain.currencyChipLabel
-import com.amdevstudio.budgetsense.ui.components.NeoPanel
+import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
+import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -62,6 +63,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
+            .appBottomBarSafePadding()
             .padding(20.dp)
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -100,93 +102,94 @@ fun SettingsScreen(
             }
         }
 
-        NeoPanel(borderAlpha = 0.28f) {
-            Text("Help & info", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            TextButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
-                Text("About BudgetSense")
-            }
-            TextButton(onClick = onOpenFaq, modifier = Modifier.fillMaxWidth()) {
-                Text("FAQ")
-            }
-        }
-
-        NeoPanel(borderAlpha = 0.28f) {
-            Text("Currency", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(12.dp))
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(SupportedCurrencies, key = { it }) { code ->
-                    val chipColors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
-                        selectedLabelColor = MaterialTheme.colorScheme.primary,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    FilterChip(
-                        selected = profile.currencyCode == code,
-                        onClick = {
-                            if (profile.currencyCode == code) return@FilterChip
-                            val updated = profile.copy(currencyCode = code)
-                            scope.launch {
-                                profileRepository.save(updated)
-                                withContext(Dispatchers.IO) {
-                                    profileRepository.syncProfileToCloud(updated)
-                                }
-                            }
-                        },
-                        label = { Text(currencyChipLabel(code)) },
-                        colors = chipColors,
-                    )
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Help & info", style = MaterialTheme.typography.titleMedium)
+                TextButton(onClick = onOpenAbout, modifier = Modifier.fillMaxWidth()) {
+                    Text("About BudgetSense")
+                }
+                TextButton(onClick = onOpenFaq, modifier = Modifier.fillMaxWidth()) {
+                    Text("FAQ")
                 }
             }
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = onOpenCurrencyConverter, modifier = Modifier.fillMaxWidth()) {
-                Text("Open live currency converter")
+        }
+
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Currency", style = MaterialTheme.typography.titleMedium)
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(SupportedCurrencies, key = { it }) { code ->
+                        val chipColors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        FilterChip(
+                            selected = profile.currencyCode == code,
+                            onClick = {
+                                if (profile.currencyCode == code) return@FilterChip
+                                val updated = profile.copy(currencyCode = code)
+                                scope.launch {
+                                    profileRepository.save(updated)
+                                    withContext(Dispatchers.IO) {
+                                        profileRepository.syncProfileToCloud(updated)
+                                    }
+                                }
+                            },
+                            label = { Text(currencyChipLabel(code)) },
+                            colors = chipColors,
+                        )
+                    }
+                }
+                TextButton(onClick = onOpenCurrencyConverter, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open live currency converter")
+                }
             }
         }
 
-        NeoPanel(borderAlpha = 0.28f) {
-            Text("Privacy on this device", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Hide balances on dashboards",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
-            Switch(
-                checked = profile.hideBalance,
-                onCheckedChange = { checked ->
-                    val updated = profile.copy(hideBalance = checked)
-                    scope.launch {
-                        profileRepository.save(updated)
-                        withContext(Dispatchers.IO) {
-                            profileRepository.syncProfileToCloud(updated)
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Privacy on this device", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Hide balances on dashboards",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Switch(
+                    checked = profile.hideBalance,
+                    onCheckedChange = { checked ->
+                        val updated = profile.copy(hideBalance = checked)
+                        scope.launch {
+                            profileRepository.save(updated)
+                            withContext(Dispatchers.IO) {
+                                profileRepository.syncProfileToCloud(updated)
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
 
-        NeoPanel(borderAlpha = 0.28f) {
-            Text("App lock", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Require Face/Fingerprint or device PIN/pattern/password to open BudgetSense.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(6.dp))
-            Switch(
-                checked = appLockEnabled,
-                onCheckedChange = { checked ->
-                    appLockEnabled = checked
-                    appPrefs.edit().putBoolean(appLockKey, checked).apply()
-                },
-            )
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("App lock", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Require Face/Fingerprint or device PIN/pattern/password to open BudgetSense.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Switch(
+                    checked = appLockEnabled,
+                    onCheckedChange = { checked ->
+                        appLockEnabled = checked
+                        appPrefs.edit().putBoolean(appLockKey, checked).apply()
+                    },
+                )
+            }
         }
 
         Button(

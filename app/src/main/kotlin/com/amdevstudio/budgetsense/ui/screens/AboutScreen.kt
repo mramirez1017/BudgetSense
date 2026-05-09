@@ -84,9 +84,14 @@ fun AboutScreen(
                     Text("What’s new", style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(8.dp))
                     val lines = listOf(
-                        "About screen and FAQs",
-                        "Live currency converter",
-                        "Currency choice in Account (with optional flag labels)",
+                        "Home Savings: circular progress rings per goal—total saved in the center plus % toward your target",
+                        "Home Savings layout simplified (goal-focused progress strip; full history stays on the Savings tab)",
+                        "Insights: savings-aware tips—for example deposits this month vs last, strongest month so far, and largest single deposit (respects Hide balance)",
+                        "Bottom navigation can scroll sideways on small screens so every tab—including Account—is easy to reach",
+                        "Global month picker on Home (same month rolls through Money & Budget)",
+                        "Savings goals on Home carousel + dedicated Savings tab for goals and deposits",
+                        "Bill reminders with local notifications and delete support",
+                        "Light-themed UI polish across dashboards, charts, and screens",
                     )
                     lines.forEach { line ->
                         Text(

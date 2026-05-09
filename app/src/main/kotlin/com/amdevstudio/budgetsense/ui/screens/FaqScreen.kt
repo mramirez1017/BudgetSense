@@ -3,14 +3,19 @@ package com.amdevstudio.budgetsense.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,7 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
@@ -43,8 +50,12 @@ private val faqSections: List<Pair<String, List<FaqQA>>> = listOf(
     ),
     "Home" to listOf(
         FaqQA(
-            "What do the tiles on Home show?",
-            "They summarize this month’s income, expenses, what is left versus your planned budget (if set), shortcut links to Bills, Savings, Insights, and a quick view of savings progress.",
+            "What does the month selector do?",
+            "The month picker on Home is global: it controls which month you’re reviewing on Home, Money, and Budget. You can only pick the current month or past months (no future months).",
+        ),
+        FaqQA(
+            "What does Home show?",
+            "Home summarizes the selected month’s income, expenses, and remaining budget. It also shows swipeable savings goal tiles and an Insights button for quick tips.",
         ),
         FaqQA(
             "Why are amounts hidden sometimes?",
@@ -54,7 +65,7 @@ private val faqSections: List<Pair<String, List<FaqQA>>> = listOf(
     "Money (transactions)" to listOf(
         FaqQA(
             "How do I add income or spending?",
-            "Open the Money tab, tap add, enter amount and type (income or expense), pick a category, and optional note. Use the calendar control to backdate entries if needed.",
+            "Open the Money tab and tap + to add an entry. Pick income/expense, amount, category, and an optional note. The + button can be dragged if it blocks something on your screen.",
         ),
         FaqQA(
             "How do I edit or delete?",
@@ -62,7 +73,7 @@ private val faqSections: List<Pair<String, List<FaqQA>>> = listOf(
         ),
         FaqQA(
             "How is the month grouped?",
-            "Dashboards highlight the current calendar month’s totals. Older items stay listed when you browse or filter in Money.",
+            "Money shows transactions for the same month you selected on Home.",
         ),
     ),
     "Budget" to listOf(
@@ -78,19 +89,23 @@ private val faqSections: List<Pair<String, List<FaqQA>>> = listOf(
     "Savings" to listOf(
         FaqQA(
             "How do savings goals work?",
-            "Create a goal with a target amount and deadline (optional). Add contributions anytime; BudgetSense totals how far you’ve come versus the goal.",
+            "Create a goal with a target amount and optional deadline. Add deposits anytime; BudgetSense totals how far you’ve come versus the target. The + button is draggable.",
+        ),
+        FaqQA(
+            "What do I see on Home vs Savings tab?",
+            "Home shows a quick overview and swipeable goal tiles. The Savings tab shows the full list, deposit history, editing, and deleting goals.",
         ),
     ),
     "Bills" to listOf(
         FaqQA(
             "How are bill reminders used?",
-            "Add bills with a due date, optional monthly repeat, and how many days before you want to be reminded. Mark “Paid this month” once you settle it.",
+            "Add bills with a due date and how many days before you want a reminder. Reminders are scheduled locally on this phone. You can mark a bill as “Paid this month”, and delete bills with the trash icon. The + button is draggable.",
         ),
     ),
     "Insights" to listOf(
         FaqQA(
             "What does Insights summarize?",
-            "It turns your expense history into short takeaways — for example which category dominated this month — using the same amounts you logged in Money.",
+            "Insights turns your spending into short tips (week-to-week and category-based). It’s opened from Home.",
         ),
     ),
     "Sync & sign out" to listOf(
@@ -126,6 +141,7 @@ private val faqSections: List<Pair<String, List<FaqQA>>> = listOf(
 fun FaqScreen(
     onBack: () -> Unit,
 ) {
+    val expanded = remember { mutableStateListOf<Boolean>().apply { repeat(faqSections.size) { add(false) } } }
     Box(Modifier.fillMaxSize()) {
         BudgetSenseAmbientBackground(Modifier.fillMaxSize())
         Scaffold(
@@ -167,24 +183,43 @@ fun FaqScreen(
             ) {
                 OverlineCaps("Help", color = MaterialTheme.colorScheme.primary)
                 Text("Frequently asked questions", style = MaterialTheme.typography.headlineSmall)
-                faqSections.forEach { (title, pairs) ->
+                faqSections.forEachIndexed { index, (title, pairs) ->
                     NeoPanel(borderAlpha = 0.28f) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.height(12.dp))
-                        pairs.forEachIndexed { index, qa ->
-                            if (index > 0) {
-                                HorizontalDivider(
-                                    Modifier.padding(vertical = 12.dp),
-                                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expanded[index] = !expanded[index] },
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            Icon(
+                                imageVector = if (expanded[index]) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (expanded[index]) "Collapse" else "Expand",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (expanded[index]) {
+                            Spacer(Modifier.height(12.dp))
+                            pairs.forEachIndexed { qaIndex, qa ->
+                                if (qaIndex > 0) {
+                                    HorizontalDivider(
+                                        Modifier.padding(vertical = 12.dp),
+                                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                    )
+                                }
+                                Text(qa.question, style = MaterialTheme.typography.titleSmall)
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    qa.answer,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Text(qa.question, style = MaterialTheme.typography.titleSmall)
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                qa.answer,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                 }

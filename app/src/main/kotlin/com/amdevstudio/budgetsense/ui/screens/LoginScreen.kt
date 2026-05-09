@@ -2,6 +2,8 @@ package com.amdevstudio.budgetsense.ui.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,13 +18,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.repository.AuthRepository
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
+import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.findActivity
@@ -37,6 +43,9 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val lockscreenDrawableId = remember(context) {
+        context.resources.getIdentifier("lockscreen", "drawable", context.packageName)
+    }
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
@@ -48,7 +57,22 @@ fun LoginScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        BudgetSenseAmbientBackground(Modifier.fillMaxSize())
+        if (lockscreenDrawableId != 0) {
+            Image(
+                painter = painterResource(lockscreenDrawableId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            )
+            // Light scrim to keep text readable while preserving the artwork.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.78f)),
+            )
+        } else {
+            BudgetSenseAmbientBackground(Modifier.fillMaxSize())
+        }
         ScreenHelpIconButton(
             title = "BudgetSense sign-in",
             modifier = Modifier
@@ -75,27 +99,43 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            OverlineCaps("Personal finance", color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(10.dp))
-            Text("BudgetSense", style = MaterialTheme.typography.displaySmall)
-            Spacer(Modifier.height(36.dp))
-            Button(
-                shape = MaterialTheme.shapes.large,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ),
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    val activity = context.findActivity()
-                    if (activity == null) {
-                        onError("No activity context")
-                        return@Button
-                    }
-                    launcher.launch(authRepository.googleSignInIntent(activity))
-                },
+                cornerRadius = 30.dp,
+                accent = MaterialTheme.colorScheme.primary,
             ) {
-                Text("Continue with Google")
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    OverlineCaps("Personal finance", color = MaterialTheme.colorScheme.primary)
+                    Text("BudgetSense", style = MaterialTheme.typography.displaySmall)
+                    Text(
+                        "Guiding your finances effortlessly.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Button(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            val activity = context.findActivity()
+                            if (activity == null) {
+                                onError("No activity context")
+                                return@Button
+                            }
+                            launcher.launch(authRepository.googleSignInIntent(activity))
+                        },
+                    ) {
+                        Text("Continue with Google", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
         }
     }

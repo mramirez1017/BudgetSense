@@ -20,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.amdevstudio.budgetsense.ui.theme.HeaderGradientEnd
+import com.amdevstudio.budgetsense.ui.theme.HeaderGradientMid
+import com.amdevstudio.budgetsense.ui.theme.HeaderGradientStart
 
 @Composable
 fun OverlineCaps(
@@ -48,29 +51,45 @@ fun Modifier.futuristicFrame(
 @Composable
 fun BudgetSenseAmbientBackground(modifier: Modifier = Modifier) {
     val base = MaterialTheme.colorScheme.background
-    val warm = MaterialTheme.colorScheme.primary
     Canvas(modifier.fillMaxSize()) {
         drawRect(color = base)
         val w = size.width
         val h = size.height
+        // Top purple header glow
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(warm.copy(alpha = 0.09f), Color.Transparent),
-                center = Offset(w * 0.9f, -h * 0.08f),
+                colors = listOf(HeaderGradientMid.copy(alpha = 0.28f), Color.Transparent),
+                center = Offset(w * 0.55f, -h * 0.05f),
+                radius = w.coerceAtLeast(h) * 0.90f,
+            ),
+        )
+        // Left blob
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(HeaderGradientStart.copy(alpha = 0.22f), Color.Transparent),
+                center = Offset(-w * 0.08f, h * 0.12f),
                 radius = w.coerceAtLeast(h) * 0.72f,
+            ),
+        )
+        // Right blob
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(HeaderGradientEnd.copy(alpha = 0.18f), Color.Transparent),
+                center = Offset(w * 1.05f, h * 0.30f),
+                radius = w.coerceAtLeast(h) * 0.78f,
             ),
         )
         drawRect(
             brush = Brush.radialGradient(
-                colors = listOf(Color(0xFF5C3DFF).copy(alpha = 0.05f), Color.Transparent),
-                center = Offset(-w * 0.02f, h * 1.02f),
-                radius = w.coerceAtLeast(h) * 0.65f,
+                colors = listOf(Color.White.copy(alpha = 0.35f), Color.Transparent),
+                center = Offset(w * 0.25f, h * 1.06f),
+                radius = w.coerceAtLeast(h) * 0.70f,
             ),
         )
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(Color.Transparent, base.copy(alpha = 0.85f)),
-                startY = h * 0.42f,
+                colors = listOf(Color.Transparent, base.copy(alpha = 0.92f)),
+                startY = h * 0.30f,
                 endY = h,
             ),
         )
