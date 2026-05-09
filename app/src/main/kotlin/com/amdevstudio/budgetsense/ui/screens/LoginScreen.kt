@@ -30,7 +30,6 @@ import com.amdevstudio.budgetsense.data.repository.AuthRepository
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
 import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.findActivity
 import com.amdevstudio.budgetsense.ui.util.userFacingMessage
 import kotlinx.coroutines.launch
@@ -72,24 +71,6 @@ fun LoginScreen(
             )
         } else {
             BudgetSenseAmbientBackground(Modifier.fillMaxSize())
-        }
-        ScreenHelpIconButton(
-            title = "BudgetSense sign-in",
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(12.dp),
-        ) {
-            Text(
-                "Track what you earn and spend, set a monthly budget, and get simple tips from your own data.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "Works on your phone offline. Sign in with Google to keep your profile and activity available when you switch devices.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
         Column(
             modifier = Modifier

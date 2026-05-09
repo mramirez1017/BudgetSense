@@ -45,10 +45,10 @@ import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.data.local.entity.BillReminderEntity
 import com.amdevstudio.budgetsense.data.repository.BillRepository
 import com.amdevstudio.budgetsense.domain.Time
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseDateField
 import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.util.appListContentPadding
+import com.amdevstudio.budgetsense.ui.util.fabMaxDragDownPx
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import com.amdevstudio.budgetsense.notifications.BillReminderScheduler
 import kotlinx.coroutines.launch
@@ -90,6 +90,7 @@ fun BillsScreen(
         val padV = with(density) { 24.dp.toPx() }
         val maxDragLeft = -(maxW - fabPx - padH * 2).coerceAtLeast(0f)
         val maxDragUp = -(maxH - fabPx - padV * 2).coerceAtLeast(0f)
+        val maxDragDown = fabMaxDragDownPx(density)
 
         Scaffold(
             containerColor = Color.Transparent,
@@ -104,25 +105,6 @@ fun BillsScreen(
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         },
-                        actions = {
-                            ScreenHelpIconButton(title = "Bill reminders") {
-                                Text(
-                                    "Add bills with a name, due date, and how many days before you want a reminder.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    "Reminders are scheduled on this phone. On Android 13+, allow notification permission.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    "Use the trash icon to delete a bill and cancel its reminder.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        },
                     )
                 }
             },
@@ -133,11 +115,11 @@ fun BillsScreen(
                         .navigationBarsPadding()
                         .padding(end = 16.dp, bottom = 24.dp)
                         .offset { IntOffset(fabDragX.roundToInt(), fabDragY.roundToInt()) }
-                        .pointerInput(maxDragLeft, maxDragUp, fabPx) {
+                        .pointerInput(maxDragLeft, maxDragUp, maxDragDown, fabPx) {
                             detectDragGestures { change, dragAmount ->
                                 change.consume()
                                 fabDragX = (fabDragX + dragAmount.x).coerceIn(maxDragLeft, 0f)
-                                fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, 0f)
+                                fabDragY = (fabDragY + dragAmount.y).coerceIn(maxDragUp, maxDragDown)
                             }
                         },
                 ) {
@@ -152,30 +134,7 @@ fun BillsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (!showTopBar) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("Bill reminders", style = MaterialTheme.typography.headlineSmall)
-                        ScreenHelpIconButton(title = "Bill reminders") {
-                            Text(
-                                "Add bills with a name, due date, and how many days before you want a reminder.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "Reminders are scheduled on this phone. On Android 13+, allow notification permission.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "Use the trash icon to delete a bill and cancel its reminder.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    Text("Bill reminders", style = MaterialTheme.typography.headlineSmall)
                 }
 
                 LazyColumn(

@@ -16,6 +16,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -702,28 +702,13 @@ private fun MainShell(
         )
     }
 
+    val navScroll = rememberScrollState()
+    val pillNavItems = remember(tabs) { tabs.map { PillNavItem(it.route, it.label, it.icon) } }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            val navScroll = rememberScrollState()
-            val items = tabs.map { PillNavItem(it.route, it.label, it.icon) }
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .horizontalScroll(navScroll)
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                PillBottomNav(
-                    items = items,
-                    selectedId = selectedTab,
-                    onSelected = onTabSelected,
-                    homeId = "dashboard",
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-            }
-        },
+        // Let tab content draw edge-to-edge; floating pill + per-screen padding handle safe areas.
+        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
     ) { innerPadding ->
         val p = profile
         if (p == null) {
@@ -824,6 +809,31 @@ private fun MainShell(
                 else -> {
                     LaunchedEffect(Unit) { onTabSelected("dashboard") }
                     Box(Modifier.fillMaxSize())
+                }
+            }
+
+            // Floating bottom nav: centered, overlays content (scroll areas use appBottomBarSafePadding).
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp, top = 6.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(navScroll)
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PillBottomNav(
+                        items = pillNavItems,
+                        selectedId = selectedTab,
+                        onSelected = onTabSelected,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                 }
             }
         }

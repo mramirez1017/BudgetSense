@@ -2,7 +2,6 @@ package com.amdevstudio.budgetsense.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,7 +49,6 @@ import com.amdevstudio.budgetsense.domain.currencyChipLabel
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberNetworkAvailable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -127,34 +125,20 @@ fun CurrencyConverterScreen(
                         }
                     },
                     actions = {
-                        Row {
-                            ScreenHelpIconButton(title = "Currency converter") {
-                                Text(
-                                    "Rates are reference ECB-based data (via Frankfurter) for planning only — not bank or card settlement prices. Weekend and holiday updates may lag to the last published day.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    "Enter an amount, choose From and To, and the result updates shortly after you edit. Use Refresh for a new fetch. You need Internet access.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    scope.launch {
-                                        loading = true
-                                        error = null
-                                        val outcome = runCurrencyFetch(amountText, from, to, networkAvailable)
-                                        loading = false
-                                        result = outcome.result
-                                        error = outcome.message
-                                    }
-                                },
-                                enabled = !loading && networkAvailable,
-                            ) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Refresh rates")
-                            }
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    loading = true
+                                    error = null
+                                    val outcome = runCurrencyFetch(amountText, from, to, networkAvailable)
+                                    loading = false
+                                    result = outcome.result
+                                    error = outcome.message
+                                }
+                            },
+                            enabled = !loading && networkAvailable,
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh rates")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

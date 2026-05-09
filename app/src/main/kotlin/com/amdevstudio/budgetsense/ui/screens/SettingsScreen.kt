@@ -16,16 +16,17 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -37,8 +38,8 @@ import com.amdevstudio.budgetsense.domain.SupportedCurrencies
 import com.amdevstudio.budgetsense.domain.currencyChipLabel
 import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
+import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,8 +58,13 @@ fun SettingsScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val dismissKeyboard = rememberKeyboardDismiss()
     val appLockKey = "app_lock_enabled"
     var appLockEnabled by remember { mutableStateOf(appPrefs.getBoolean(appLockKey, false)) }
+    var displayNameDraft by remember(profile.userId) { mutableStateOf(profile.displayName) }
+    LaunchedEffect(profile.displayName) {
+        displayNameDraft = profile.displayName
+    }
 
     Column(
         modifier = Modifier
@@ -68,37 +74,46 @@ fun SettingsScreen(
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(Modifier.weight(1f)) {
-                OverlineCaps("Account", color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(4.dp))
-                Text("Preferences & sign-in", style = MaterialTheme.typography.headlineSmall)
-            }
-            ScreenHelpIconButton(title = "Account") {
+        Column(Modifier.fillMaxWidth()) {
+            OverlineCaps("Account", color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(4.dp))
+            Text("Preferences & sign-in", style = MaterialTheme.typography.headlineSmall)
+        }
+
+        GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Your name", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Hide balances hides money amounts on Home and Money — useful when someone else can see your screen.",
+                    "How BudgetSense greets you on Home.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    "Currency sets how amounts are labeled everywhere. It does not convert past entries.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                OutlinedTextField(
+                    value = displayNameDraft,
+                    onValueChange = { displayNameDraft = it },
+                    label = { Text("Display name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                 )
-                Text(
-                    "App lock can require Face/Fingerprint or your device PIN/pattern/password to open BudgetSense.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "Sign out clears your session and removes BudgetSense data from this device. Sign in again to restore what’s stored for your account.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Button(
+                    onClick = {
+                        val trimmed = displayNameDraft.trim().ifBlank { "You" }
+                        dismissKeyboard()
+                        if (trimmed == profile.displayName) return@Button
+                        val updated = profile.copy(displayName = trimmed)
+                        scope.launch {
+                            profileRepository.save(updated)
+                            withContext(Dispatchers.IO) {
+                                profileRepository.syncProfileToCloud(updated)
+                            }
+                        }
+                    },
+                    enabled = displayNameDraft.trim().ifBlank { "You" } != profile.displayName,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.extraLarge,
+                ) {
+                    Text("Save name")
+                }
             }
         }
 

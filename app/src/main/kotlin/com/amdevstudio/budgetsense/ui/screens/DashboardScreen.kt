@@ -2,10 +2,16 @@ package com.amdevstudio.budgetsense.ui.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.ButtonDefaults
@@ -37,16 +44,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.min
@@ -56,15 +71,18 @@ import com.amdevstudio.budgetsense.data.local.entity.TransactionEntity
 import com.amdevstudio.budgetsense.data.local.entity.SavingsGoalEntity
 import com.amdevstudio.budgetsense.data.local.entity.UserProfileEntity
 import com.amdevstudio.budgetsense.domain.MoneyFormat
+import com.amdevstudio.budgetsense.domain.TipsOfTheDay
 import com.amdevstudio.budgetsense.domain.Time
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseMonthField
-import com.amdevstudio.budgetsense.ui.components.DataFigure
 import com.amdevstudio.budgetsense.ui.components.HeroSummaryCard
 import com.amdevstudio.budgetsense.ui.components.MonthExpensePieChart
+import com.amdevstudio.budgetsense.ui.components.expenseCategoryDashboardPalette
+import com.amdevstudio.budgetsense.ui.components.NeonCalloutCard
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
+import com.amdevstudio.budgetsense.ui.components.TipOfTheDayDialog
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
 import com.amdevstudio.budgetsense.ui.util.appBottomBarSafePadding
+import java.time.LocalDate
 import java.time.ZonedDateTime
 
 @Composable
@@ -95,6 +113,10 @@ fun DashboardScreen(
             else -> "Good evening"
         }
     }
+    val tipOfTheDay = remember(LocalDate.now().toEpochDay()) {
+        TipsOfTheDay.forToday()
+    }
+    var tipDialogOpen by remember { mutableStateOf(false) }
     val hide = profile.hideBalance
     val currency = profile.currencyCode
     val balance = monthIncome - monthExpense
@@ -113,8 +135,6 @@ fun DashboardScreen(
             .sortedByDescending { it.value }
             .take(5)
     }
-    val topCategories = topFiveExpenses
-
     val pieSlices = remember(monthTransactions) {
         val entries = monthTransactions
             .filter { it.type == TransactionType.EXPENSE }
@@ -131,9 +151,18 @@ fun DashboardScreen(
         }
     }
 
-    val dockShape = MaterialTheme.shapes.extraLarge
-    val savingsDockShape = MaterialTheme.shapes.extraLarge
-    val accentStroke = MaterialTheme.colorScheme.primary.copy(alpha = 0.48f)
+    val expensePalette = expenseCategoryDashboardPalette()
+    val gradientInfinite = rememberInfiniteTransition(label = "homeTileGrad")
+    val tileGradientPhase by gradientInfinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "tileGradientPhase",
+    )
+
     Column(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
@@ -141,48 +170,60 @@ fun DashboardScreen(
             .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(Modifier.fillMaxWidth()) {
+            OverlineCaps("Home", color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "$greeting, ${profile.displayName}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(10.dp))
+            BudgetSenseMonthField(
+                label = "Month",
+                monthKey = monthKey,
+                onMonthSelected = onMonthKeyChanged,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        NeonCalloutCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { tipDialogOpen = true },
+            accent = MaterialTheme.colorScheme.tertiary,
         ) {
-            Column(Modifier.weight(1f)) {
-                OverlineCaps("Home", color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "$greeting, ${profile.displayName}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Default.Lightbulb,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.size(32.dp),
                 )
-                Spacer(Modifier.height(10.dp))
-                BudgetSenseMonthField(
-                    label = "Month",
-                    monthKey = monthKey,
-                    onMonthSelected = onMonthKeyChanged,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Tip of the day",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        "Tap to read today’s tip",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-            ScreenHelpIconButton(title = "Home") {
-                Text(
-                    "Pick a month to review past spending. Home, Money, and Budget will update to the same month.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "Savings shows each goal’s total saved, progress ring, and share of the target. Full history is on the Savings tab.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "Scroll sideways on Top expenses. Use Insights to see weekly tips from your spending patterns.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "Data is kept on your phone first (works offline). When you’re online, it syncs to your account so you can continue on another device.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+        }
+
+        if (tipDialogOpen) {
+            TipOfTheDayDialog(
+                description = tipOfTheDay,
+                onDismiss = { tipDialogOpen = false },
+            )
         }
 
         HeroSummaryCard(
@@ -221,15 +262,6 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                val tileColors = remember {
-                    listOf(
-                        Color(0xFFFF8A50),
-                        Color(0xFF2DD4BF),
-                        Color(0xFF60A5FA),
-                        Color(0xFFA78BFA),
-                        Color(0xFFFBBF24),
-                    )
-                }
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp),
@@ -242,7 +274,8 @@ fun DashboardScreen(
                             rank = index + 1,
                             category = entry.key,
                             amountText = MoneyFormat.format(currency, entry.value, hide),
-                            containerColor = tileColors[index % tileColors.size],
+                            containerColor = expensePalette[index % expensePalette.size],
+                            gradientPhase = tileGradientPhase,
                         )
                     }
                 }
@@ -302,6 +335,7 @@ fun DashboardScreen(
                             currencyCode = currency,
                             hideMoney = hide,
                             containerColor = savingsTileColors[index % savingsTileColors.size],
+                            gradientPhase = tileGradientPhase,
                         )
                     }
                 }
@@ -332,6 +366,7 @@ fun DashboardScreen(
                     hideMoney = hide,
                     slices = pieSlices,
                     modifier = Modifier.fillMaxWidth(),
+                    sliceColors = expensePalette,
                 )
             }
         }
@@ -370,36 +405,6 @@ fun DashboardScreen(
             }
         }
 
-        NeoPanel(borderAlpha = 0.28f) {
-            OverlineCaps("Where money went", color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(2.dp))
-            Text("Top 5 expense categories (this month)", style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(8.dp))
-            if (topCategories.isEmpty()) {
-                Text(
-                    "No expenses logged yet — tap Money on the bar, then + to add one.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            } else {
-                topCategories.forEach { (cat, cents) ->
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(cat, style = MaterialTheme.typography.titleSmall)
-                        DataFigure(
-                            text = MoneyFormat.format(currency, cents, hide),
-                            compact = true,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-
         TextButton(
             onClick = onOpenInsights,
             modifier = Modifier.fillMaxWidth(),
@@ -419,6 +424,7 @@ private fun SavingsGoalRingTile(
     currencyCode: String,
     hideMoney: Boolean,
     containerColor: Color,
+    gradientPhase: Float,
 ) {
     val safeTarget = targetCents.coerceAtLeast(1L)
     val ratio = (savedCents.coerceAtLeast(0L).toFloat() / safeTarget.toFloat()).coerceIn(0f, 1f)
@@ -439,87 +445,92 @@ private fun SavingsGoalRingTile(
     val ringColor = Color.White.copy(alpha = 0.95f)
     val savedText = MoneyFormat.format(currencyCode, savedCents.coerceAtLeast(0L), hideMoney)
 
-    Column(
+    Box(
         modifier = Modifier
             .width(160.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(containerColor)
-            .padding(horizontal = 14.dp, vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .flowingTileGradient(containerColor, gradientPhase, cornerDp = 22.dp),
     ) {
-        Row(Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.38f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        rank.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                name,
+                style = MaterialTheme.typography.titleSmall,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(10.dp))
             Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.38f)),
+                modifier = Modifier.size(118.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    rank.toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White,
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            name,
-            style = MaterialTheme.typography.titleSmall,
-            color = Color.White,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(10.dp))
-        Box(
-            modifier = Modifier.size(118.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(Modifier.fillMaxSize()) {
-                val strokePx = min(size.width, size.height) * 0.09f
-                val diameter = min(size.width, size.height) - strokePx
-                val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
-                val arcSize = Size(diameter, diameter)
-                val ringStroke = Stroke(width = strokePx, cap = StrokeCap.Round)
-                drawArc(
-                    color = trackColor,
-                    startAngle = 0f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = topLeft,
-                    size = arcSize,
-                    style = ringStroke,
-                )
-                if (sweep > 0.06f) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val strokePx = min(size.width, size.height) * 0.09f
+                    val diameter = min(size.width, size.height) - strokePx
+                    val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+                    val arcSize = Size(diameter, diameter)
+                    val ringStroke = Stroke(width = strokePx, cap = StrokeCap.Round)
                     drawArc(
-                        color = ringColor,
-                        startAngle = -90f,
-                        sweepAngle = sweep,
+                        color = trackColor,
+                        startAngle = 0f,
+                        sweepAngle = 360f,
                         useCenter = false,
                         topLeft = topLeft,
                         size = arcSize,
                         style = ringStroke,
                     )
+                    if (sweep > 0.06f) {
+                        drawArc(
+                            color = ringColor,
+                            startAngle = -90f,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = topLeft,
+                            size = arcSize,
+                            style = ringStroke,
+                        )
+                    }
                 }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    savedText,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        letterSpacing = 0.2.sp,
-                        lineHeight = 18.sp,
-                    ),
-                    color = Color.White,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    if (targetCents > 0L) "$pctForLabel%" else "—",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.9f),
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        savedText,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            letterSpacing = 0.2.sp,
+                            lineHeight = 18.sp,
+                        ),
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        if (targetCents > 0L) "$pctForLabel%" else "—",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.9f),
+                    )
+                }
             }
         }
     }
@@ -531,45 +542,79 @@ private fun ExpenseCategoryTile(
     category: String,
     amountText: String,
     containerColor: Color,
+    gradientPhase: Float,
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .width(152.dp)
             .height(128.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(containerColor)
-            .padding(14.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .flowingTileGradient(containerColor, gradientPhase, cornerDp = 22.dp),
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.38f)),
-            contentAlignment = Alignment.Center,
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                rank.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.White,
-            )
-        }
-        Column {
-            Text(
-                category,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                amountText,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.38f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    rank.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White,
+                )
+            }
+            Column {
+                Text(
+                    category,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    amountText,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
+}
+
+private fun Modifier.flowingTileGradient(
+    containerColor: Color,
+    gradientPhase: Float,
+    cornerDp: Dp,
+): Modifier = drawBehind {
+    val w = size.width
+    val h = size.height
+    val p = gradientPhase
+    val glow = lerp(containerColor, Color.White, 0.38f)
+    val shaded = lerp(containerColor, Color.Black, 0.14f)
+    val px = cornerDp.toPx()
+    drawRoundRect(
+        brush = Brush.linearGradient(
+            colors = listOf(
+                lerp(containerColor, glow, 0.35f + p * 0.45f),
+                containerColor,
+                lerp(glow, containerColor, p * 0.7f),
+                shaded,
+                lerp(containerColor, glow, 0.2f + (1f - p) * 0.35f),
+            ),
+            start = Offset(-w * 0.15f + p * w * 0.95f, -h * 0.1f),
+            end = Offset(w * 1.05f + p * w * 0.25f, h * 1.2f),
+        ),
+        cornerRadius = CornerRadius(px, px),
+        size = size,
+    )
 }

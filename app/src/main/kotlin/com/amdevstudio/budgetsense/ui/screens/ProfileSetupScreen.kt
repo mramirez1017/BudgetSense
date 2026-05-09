@@ -3,7 +3,6 @@ package com.amdevstudio.budgetsense.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -35,7 +33,6 @@ import com.amdevstudio.budgetsense.domain.currencyChipLabel
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
 import com.amdevstudio.budgetsense.ui.components.GlassCard
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 import com.amdevstudio.budgetsense.ui.util.rememberKeyboardDismiss
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -67,28 +64,10 @@ fun ProfileSetupScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column(Modifier.weight(1f)) {
-                OverlineCaps("Before you start", color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(6.dp))
-                Text("Set up your profile", style = MaterialTheme.typography.headlineSmall)
-            }
-            ScreenHelpIconButton(title = "Profile setup") {
-                Text(
-                    "Choose a display name and the currency used for every amount in the app. Typical monthly income is optional — if you enter it, BudgetSense can suggest budget ideas.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "You can change name, currency, privacy options, and more later under Account.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(Modifier.fillMaxWidth()) {
+            OverlineCaps("Before you start", color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(6.dp))
+            Text("Set up your profile", style = MaterialTheme.typography.headlineSmall)
         }
         Spacer(Modifier.height(12.dp))
         GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 28.dp) {

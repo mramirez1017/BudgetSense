@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.amdevstudio.budgetsense.ui.components.BudgetSenseAmbientBackground
 import com.amdevstudio.budgetsense.ui.components.NeoPanel
 import com.amdevstudio.budgetsense.ui.components.OverlineCaps
-import com.amdevstudio.budgetsense.ui.components.ScreenHelpIconButton
 
 private data class FaqQA(val question: String, val answer: String)
 
@@ -152,20 +151,6 @@ fun FaqScreen(
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = {
-                        ScreenHelpIconButton(title = "Using this FAQ") {
-                            Text(
-                                "Answers are grouped by topic. Open a section below to read each question.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                "If something looks wrong, check your connection — sync and the currency converter need the Internet.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
